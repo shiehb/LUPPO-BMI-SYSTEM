@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, RotateCcw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -13,9 +13,9 @@ export function ReviewActions({ assessmentId }: { assessmentId: string }) {
   const router = useRouter();
   const [approveOpen, setApproveOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [isReturning, setIsReturning] = useState(false);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [adminRemarks, setAdminRemarks] = useState("");
 
   async function handleApprove() {
     setIsApproving(true);
@@ -32,21 +32,21 @@ export function ReviewActions({ assessmentId }: { assessmentId: string }) {
     }
   }
 
-  async function handleReject() {
-    if (!rejectionReason.trim()) {
-      toast.error("Please enter a rejection reason.");
+  async function handleReturn() {
+    if (!adminRemarks.trim()) {
+      toast.error("Please enter remarks so the officer knows what to fix.");
       return;
     }
-    setIsRejecting(true);
+    setIsReturning(true);
     try {
-      const result = await updateAssessmentStatus(assessmentId, "rejected", rejectionReason.trim());
+      const result = await updateAssessmentStatus(assessmentId, "revision_required", adminRemarks.trim());
       if (result.error) { toast.error(result.error); return; }
-      toast.success("Assessment rejected.");
+      toast.success("Assessment returned for revision.");
       router.push("/system_admin/assessments");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to reject.");
+      toast.error(e instanceof Error ? e.message : "Failed to return assessment.");
     } finally {
-      setIsRejecting(false);
+      setIsReturning(false);
     }
   }
 
@@ -60,41 +60,41 @@ export function ReviewActions({ assessmentId }: { assessmentId: string }) {
         Approve
       </Button>
 
-      {!showRejectForm ? (
+      {!showReturnForm ? (
         <Button
           variant="outline"
-          className="w-full border-destructive/40 text-destructive hover:bg-destructive/5"
-          onClick={() => setShowRejectForm(true)}
+          className="w-full border-amber-400/50 text-amber-700 hover:bg-amber-50"
+          onClick={() => setShowReturnForm(true)}
         >
-          <XCircle className="mr-2 size-4" />
-          Reject
+          <RotateCcw className="mr-2 size-4" />
+          Return for Revision
         </Button>
       ) : (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-          <p className="text-sm font-medium text-destructive">Rejection Reason *</p>
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+          <p className="text-sm font-medium text-amber-800">Admin Remarks *</p>
           <Textarea
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Describe why this submission is being rejected…"
+            value={adminRemarks}
+            onChange={(e) => setAdminRemarks(e.target.value)}
+            placeholder="Describe what the officer needs to correct before resubmitting…"
             rows={3}
           />
           <div className="flex gap-2">
             <Button
-              variant="destructive"
-              className="flex-1"
-              disabled={isRejecting || !rejectionReason.trim()}
-              onClick={handleReject}
+              variant="default"
+              className="flex-1 bg-amber-600 hover:bg-amber-700"
+              disabled={isReturning || !adminRemarks.trim()}
+              onClick={handleReturn}
             >
-              {isRejecting ? (
+              {isReturning ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                "Submit Rejection"
+                "Return for Revision"
               )}
             </Button>
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => { setShowRejectForm(false); setRejectionReason(""); }}
+              onClick={() => { setShowReturnForm(false); setAdminRemarks(""); }}
             >
               Cancel
             </Button>

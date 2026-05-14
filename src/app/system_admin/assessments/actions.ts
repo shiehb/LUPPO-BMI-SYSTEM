@@ -12,8 +12,8 @@ function getAdminClient() {
 
 export async function updateAssessmentStatus(
   id: string,
-  status: "approved" | "rejected",
-  rejectionReason?: string
+  status: "approved" | "revision_required",
+  adminRemarks?: string
 ): Promise<{ error?: string }> {
   const session = await createClient();
   const { data: { user } } = await session.auth.getUser();
@@ -30,7 +30,7 @@ export async function updateAssessmentStatus(
       status,
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
-      rejection_reason: rejectionReason ?? null,
+      admin_remarks: adminRemarks ?? null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)

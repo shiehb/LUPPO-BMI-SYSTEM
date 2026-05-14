@@ -51,7 +51,7 @@ export default async function NewAssessmentPage({
       .from("bmi_assessments")
       .select("*")
       .eq("user_id", user.id)
-      .in("status", ["draft", "pending_approval"])
+      .in("status", ["draft", "pending_approval", "revision_required"])
       .order("updated_at", { ascending: false })
       .maybeSingle(),
   ]);
@@ -68,6 +68,20 @@ export default async function NewAssessmentPage({
       <div className="space-y-4 max-w-2xl">
         <Breadcrumb />
         <PendingView assessment={assessment} name={profile.full_name} rank={profile.rank} />
+      </div>
+    );
+  }
+
+  // Revision required: go straight to the edit form (no review step)
+  if (assessment?.status === "revision_required") {
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <Breadcrumb />
+        <AssessmentInput
+          profile={profile}
+          age={age}
+          initialData={assessment}
+        />
       </div>
     );
   }

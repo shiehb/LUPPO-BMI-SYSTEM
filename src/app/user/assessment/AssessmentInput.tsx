@@ -101,7 +101,7 @@ export function AssessmentInput({
   // Lifecycle-based read/write logic
   const isLocked =
     initialData?.status === "pending_approval" || initialData?.status === "approved";
-  const isRejected = initialData?.status === "rejected";
+  const isRevision = initialData?.status === "revision_required";
 
   const [isSaving, setIsSaving]           = useState(false);
   const [isConfirming, setIsConfirming]   = useState(false);
@@ -220,6 +220,7 @@ export function AssessmentInput({
       }
 
       setPendingSave({
+        assessmentId:  isRevision ? initialData?.id : undefined,
         weight:        parseFloat(values.weight),
         height:        parseFloat(values.height),
         waist:         parseFloat(values.waist),
@@ -273,7 +274,7 @@ export function AssessmentInput({
         <h1 className="text-2xl font-bold">
           {isLocked
             ? "BMI Assessment (Read-Only)"
-            : isRejected
+            : isRevision
             ? "Revise & Resubmit Assessment"
             : initialData
             ? "Edit Draft"
@@ -282,8 +283,8 @@ export function AssessmentInput({
         <p className="text-sm text-muted-foreground mt-1">
           {isLocked
             ? "This assessment has been submitted and cannot be edited."
-            : isRejected
-            ? "Your assessment was rejected. Update your measurements and resubmit."
+            : isRevision
+            ? "Your assessment was returned for revision. Update your measurements and resubmit."
             : "Enter your measurements. Results calculate live — save a draft to review before submitting."}
         </p>
       </div>
@@ -311,15 +312,17 @@ export function AssessmentInput({
           </div>
         </div>
       )}
-      {isRejected && initialData?.rejection_reason && (
-        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      {isRevision && (
+        <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
           <div>
-            <p className="font-semibold">Assessment Rejected</p>
-            <p className="mt-0.5 text-red-700">
-              Reason: <span className="italic">{initialData.rejection_reason}</span>
-            </p>
-            <p className="mt-1 text-red-600">
+            <p className="font-semibold">Revision Required</p>
+            {initialData?.admin_remarks && (
+              <p className="mt-0.5 text-orange-700">
+                Admin remarks: <span className="italic">{initialData.admin_remarks}</span>
+              </p>
+            )}
+            <p className="mt-1 text-orange-600">
               Please correct your measurements and resubmit.
             </p>
           </div>
@@ -499,7 +502,7 @@ export function AssessmentInput({
             <Button type="submit" disabled={isSaving || !bmiPreview} className="w-full sm:flex-1">
               {isSaving ? (
                 <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
-              ) : isRejected ? (
+              ) : isRevision ? (
                 "Save & Resubmit"
               ) : (
                 "Save Draft"
@@ -516,9 +519,13 @@ export function AssessmentInput({
       <ConfirmationDialog
         open={saveConfirmOpen}
         onOpenChange={setSaveConfirmOpen}
-        title="Save Draft?"
-        description="Your measurements and photos will be saved as a draft. You can review and submit it later."
-        confirmLabel="Save Draft"
+        title={isRevision ? "Save & Resubmit?" : "Save Draft?"}
+        description={
+          isRevision
+            ? "Your corrected measurements will be saved and immediately resubmitted for admin review."
+            : "Your measurements and photos will be saved as a draft. You can review and submit it later."
+        }
+        confirmLabel={isRevision ? "Save & Resubmit" : "Save Draft"}
         isPending={isConfirming}
         onConfirm={handleConfirmSave}
       />

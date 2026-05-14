@@ -28,6 +28,7 @@ function calcAge(birthdate: string): number {
 }
 
 export interface SaveDraftPayload {
+  assessmentId?: string;   // when set + record is revision_required, do upsert → pending_approval
   weight:        number;
   height:        number;
   waist:         number | null;
@@ -36,6 +37,12 @@ export interface SaveDraftPayload {
   photoRightUrl: string | null;
   photoFrontUrl: string | null;
   photoLeftUrl:  string | null;
+}
+
+const REVALIDATE_PATHS = ["/user", "/user/assessment", "/user/assessment/new"];
+
+function revalidateAll() {
+  REVALIDATE_PATHS.forEach((p) => revalidatePath(p));
 }
 
 export async function saveDraft(
@@ -113,6 +120,34 @@ export async function saveDraft(
     updated_at:        new Date().toISOString(),
   };
 
+  // Upsert path: revision_required → update in place and resubmit as pending_approval
+  if (payload.assessmentId) {
+    const { data: existing } = await admin
+      .from("bmi_assessments")
+      .select("id, status")
+      .eq("id", payload.assessmentId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existing?.status === "revision_required") {
+      const { error } = await admin
+        .from("bmi_assessments")
+        .update({
+          ...record,
+          status:       "pending_approval",
+          admin_remarks: null,
+          submitted_at:  new Date().toISOString(),
+          certified_at:  new Date().toISOString(),
+        })
+        .eq("id", payload.assessmentId);
+
+      if (error) return { error: error.message };
+      revalidateAll();
+      return { id: payload.assessmentId };
+    }
+  }
+
+  // Normal draft path: find or create the user's draft
   const { data: existing } = await admin
     .from("bmi_assessments")
     .select("id")
@@ -126,9 +161,7 @@ export async function saveDraft(
       .update(record)
       .eq("id", existing.id);
     if (error) return { error: error.message };
-    revalidatePath("/user");
-    revalidatePath("/user/assessment");
-    revalidatePath("/user/assessment/new");
+    revalidateAll();
     return { id: existing.id };
   }
 
@@ -138,9 +171,7 @@ export async function saveDraft(
     .select("id")
     .single();
   if (error) return { error: error.message };
-  revalidatePath("/user");
-  revalidatePath("/user/assessment");
-  revalidatePath("/user/assessment/new");
+  revalidateAll();
   return { id: data.id };
 }
 
@@ -169,8 +200,36 @@ export async function submitAssessment(
     .eq("status", "draft");
 
   if (error) return { error: error.message };
-  revalidatePath("/user");
-  revalidatePath("/user/assessment");
-  revalidatePath("/user/assessment/new");
+  revalidateAll();
+  return {};
+}
+
+// Allows the user to recall a pending submission back to draft for editing
+export async function requestRevision(
+  id: string
+): Promise<{ error?: string }> {
+  const session = await createClient();
+  const { data: { user } } = await session.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  let admin;
+  try { admin = getAdminClient(); } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { error } = await admin
+    .from("bmi_assessments")
+    .update({
+      status:       "draft",
+      submitted_at: null,
+      certified_at: null,
+      updated_at:   new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("status", "pending_approval");
+
+  if (error) return { error: error.message };
+  revalidateAll();
   return {};
 }

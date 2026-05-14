@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Clock, History, Plus, TrendingUp } from "lucide-react";
+import { AlertTriangle, Clock, History, Plus, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import type { Assessment, AssessmentStatus } from "@/lib/types";
@@ -21,6 +21,7 @@ import { getWHOBadgeClass } from "@/lib/utils/bmi";
 import { getPNPBadgeClass } from "@/lib/utils/pnp";
 import type { WHOCategory } from "@/lib/utils/bmi";
 import type { PNPClassification } from "@/lib/utils/pnp";
+import { RecallButton } from "./RecallButton";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -37,15 +38,22 @@ function fmtDate(dateStr: string) {
 }
 
 function statusLabel(s: AssessmentStatus) {
-  return { draft: "Draft", pending_approval: "Pending", approved: "Approved", rejected: "Rejected" }[s];
+  return {
+    draft:             "Draft",
+    pending_approval:  "Pending",
+    approved:          "Approved",
+    rejected:          "Rejected",
+    revision_required: "Revision Required",
+  }[s];
 }
 
 function statusBadgeClass(s: AssessmentStatus) {
   return {
-    draft:            "bg-gray-100 text-gray-700 border-gray-200",
-    pending_approval: "bg-amber-100 text-amber-800 border-amber-200",
-    approved:         "bg-green-100 text-green-800 border-green-200",
-    rejected:         "bg-red-100 text-red-800 border-red-200",
+    draft:             "bg-gray-100 text-gray-700 border-gray-200",
+    pending_approval:  "bg-amber-100 text-amber-800 border-amber-200",
+    approved:          "bg-green-100 text-green-800 border-green-200",
+    rejected:          "bg-red-100 text-red-800 border-red-200",
+    revision_required: "bg-orange-100 text-orange-800 border-orange-200",
   }[s];
 }
 
@@ -63,7 +71,8 @@ export default async function AssessmentPage() {
 
   const assessments = (raw ?? []) as Assessment[];
   const latest      = assessments[0] ?? null;
-  const hasPending  = assessments.some((a) => a.status === "pending_approval");
+  const pending     = assessments.find((a) => a.status === "pending_approval") ?? null;
+  const revision    = assessments.find((a) => a.status === "revision_required") ?? null;
   const hasDraft    = assessments.some((a) => a.status === "draft");
 
   return (
@@ -78,10 +87,17 @@ export default async function AssessmentPage() {
           </p>
         </div>
 
-        {hasPending ? (
+        {pending ? (
           <Button disabled className="gap-2 shrink-0">
             <Clock className="size-4" />
             Pending Review
+          </Button>
+        ) : revision ? (
+          <Button asChild className="gap-2 shrink-0 bg-orange-600 hover:bg-orange-700">
+            <Link href="/user/assessment/new">
+              <AlertTriangle className="size-4" />
+              Edit & Resubmit
+            </Link>
           </Button>
         ) : (
           <Button asChild className="gap-2 shrink-0">
@@ -93,17 +109,38 @@ export default async function AssessmentPage() {
         )}
       </div>
 
-      {/* ── Pending banner ── */}
-      {hasPending && (
+      {/* ── Pending banner with Recall button ── */}
+      {pending && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <Clock className="mt-0.5 size-4 shrink-0 text-amber-600" />
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-800">
               Assessment Pending Admin Approval
             </p>
             <p className="mt-0.5 text-xs text-amber-700">
-              Your latest submission is under review. You cannot create a new
-              assessment until it is approved or rejected.
+              Your latest submission is under review. Recall it if you need to make changes before the admin reviews it.
+            </p>
+          </div>
+          <RecallButton assessmentId={pending.id} />
+        </div>
+      )}
+
+      {/* ── Revision Required banner ── */}
+      {revision && (
+        <div className="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-orange-600" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-orange-800">
+              Assessment Returned for Revision
+            </p>
+            {revision.admin_remarks && (
+              <p className="mt-1 text-xs text-orange-700">
+                <span className="font-medium">Admin remarks:</span>{" "}
+                {revision.admin_remarks}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-orange-600">
+              Please correct your assessment and resubmit.
             </p>
           </div>
         </div>
@@ -213,6 +250,7 @@ export default async function AssessmentPage() {
                     <TableHead className="text-right">BMI</TableHead>
                     <TableHead>Classification</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-20" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -241,6 +279,15 @@ export default async function AssessmentPage() {
                         >
                           {statusLabel(a.status)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {(a.status === "draft" || a.status === "revision_required") && (
+                          <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                            <Link href="/user/assessment/new">
+                              Edit
+                            </Link>
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

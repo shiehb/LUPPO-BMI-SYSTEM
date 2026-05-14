@@ -59,6 +59,7 @@ export default async function AssessmentReviewPage({
 
   const age = officer?.birthdate ? calculateAge(officer.birthdate) : null;
   const isPending = assessment.status === "pending_approval";
+  const isRevisionRequired = assessment.status === "revision_required";
 
   const photoViews = [
     { label: "Right",  url: assessment.photo_right_url },
@@ -118,10 +119,16 @@ export default async function AssessmentReviewPage({
               className={
                 assessment.status === "approved"
                   ? "bg-green-100 text-green-800 border-green-200"
+                  : isRevisionRequired
+                  ? "bg-amber-100 text-amber-800 border-amber-200"
                   : "bg-red-100 text-red-800 border-red-200"
               }
             >
-              {assessment.status === "approved" ? "Approved" : "Rejected"}
+              {assessment.status === "approved"
+                ? "Approved"
+                : isRevisionRequired
+                ? "Revision Required"
+                : "Rejected"}
             </Badge>
           </span>
         )}
@@ -253,12 +260,14 @@ export default async function AssessmentReviewPage({
                   <p className="text-muted-foreground">
                     This assessment has already been reviewed.
                   </p>
-                  {assessment.rejection_reason && (
-                    <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
-                      <p className="text-xs font-semibold text-destructive mb-1">
-                        Rejection Reason
+                  {(assessment.admin_remarks || assessment.rejection_reason) && (
+                    <div className={`rounded-md p-3 border ${isRevisionRequired ? "bg-amber-50 border-amber-200" : "bg-destructive/10 border-destructive/20"}`}>
+                      <p className={`text-xs font-semibold mb-1 ${isRevisionRequired ? "text-amber-800" : "text-destructive"}`}>
+                        Admin Remarks
                       </p>
-                      <p className="text-sm">{assessment.rejection_reason}</p>
+                      <p className="text-sm">
+                        {assessment.admin_remarks ?? assessment.rejection_reason}
+                      </p>
                     </div>
                   )}
                 </div>

@@ -19,7 +19,7 @@ export interface Profile {
   created_at: string;
 }
 
-export type AssessmentStatus = "draft" | "pending_approval" | "approved" | "rejected";
+export type AssessmentStatus = "draft" | "pending_approval" | "approved" | "rejected" | "revision_required";
 
 export interface Assessment {
   id: string;
@@ -48,6 +48,7 @@ export interface Assessment {
   reviewed_by: string | null;
   reviewed_at: string | null;
   rejection_reason: string | null;
+  admin_remarks: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,7 +68,7 @@ export interface AssessmentWithOfficer extends Assessment {
 }
 
 // Personnel Master List types
-export type PersonnelStatus = "approved" | "pending_approval" | "rejected" | "not_started";
+export type PersonnelStatus = "approved" | "pending_approval" | "rejected" | "revision_required" | "not_started";
 
 export interface PersonnelRecord {
   profile: Profile;
