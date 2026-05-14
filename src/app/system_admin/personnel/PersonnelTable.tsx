@@ -69,6 +69,10 @@ const STATUS_CONFIG: Record<
     label: "Rejected",
     className: "bg-red-100 text-red-800 border-red-200",
   },
+  revision_required: {
+    label: "Revision Required",
+    className: "bg-orange-100 text-orange-800 border-orange-200",
+  },
   not_started: {
     label: "Not Started",
     className: "bg-gray-100 text-gray-600 border-gray-200",
