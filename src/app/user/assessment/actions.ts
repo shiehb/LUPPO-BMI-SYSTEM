@@ -28,9 +28,16 @@ function calcAge(birthdate: string): number {
 }
 
 export interface SaveDraftPayload {
-  assessmentId?: string;   // when set + record is revision_required, do upsert → pending_approval
-  weight:        number;
-  height:        number;
+  /**
+   * "draft"  — relaxed: weight+height are required, everything else is optional.
+   *            Status stays "draft" (or "revision_required" when editing one).
+   * "submit" — strict: all measurements + all 3 photos required.
+   *            Status transitions to "pending_approval".
+   */
+  intent:        "draft" | "submit";
+  assessmentId?: string;     // when set, update this specific record (revision_required upsert)
+  weight:        number;     // always required (needed for BMI score)
+  height:        number;     // always required
   waist:         number | null;
   hip:           number | null;
   wrist:         number | null;
@@ -57,6 +64,20 @@ export async function saveDraft(
     return { error: (e as Error).message };
   }
 
+  // ── Server-side strict validation (submit intent only) ──────────────────────
+  if (payload.intent === "submit") {
+    const missing: string[] = [];
+    if (!payload.waist)         missing.push("waist");
+    if (!payload.hip)           missing.push("hip");
+    if (!payload.wrist)         missing.push("wrist");
+    if (!payload.photoRightUrl) missing.push("right photo");
+    if (!payload.photoFrontUrl) missing.push("front photo");
+    if (!payload.photoLeftUrl)  missing.push("left photo");
+    if (missing.length > 0)
+      return { error: `Missing required fields: ${missing.join(", ")}.` };
+  }
+
+  // ── Compute BMI & classifications ───────────────────────────────────────────
   const { data: profileData } = await admin
     .from("profiles")
     .select("gender, birthdate")
@@ -69,9 +90,9 @@ export async function saveDraft(
   const bmi           = calculateBMI(payload.weight, payload.height);
   const { min, max }  = getNormalWeightRange(payload.height);
   const weightToLose  = getWeightToLose(payload.weight, payload.height);
+  const whoCategory   = getWHOCategory(bmi);
 
-  const whoCategory = getWHOCategory(bmi);
-  const pnpStatus   = getPNPClassification({
+  const pnpStatus = getPNPClassification({
     bmi,
     waistCm: payload.waist,
     wristCm: payload.wrist,
@@ -89,14 +110,16 @@ export async function saveDraft(
     bmi,
     whoCategory,
     pnpClassification: pnpStatus,
-    waistCm:  payload.waist,
-    hipCm:    payload.hip,
-    wristCm:  payload.wrist,
-    heightM:  payload.height,
+    waistCm:     payload.waist,
+    hipCm:       payload.hip,
+    wristCm:     payload.wrist,
+    heightM:     payload.height,
     gender,
     frameSize,
     weightToLose,
   });
+
+  const now = new Date().toISOString();
 
   const record = {
     user_id:           user.id,
@@ -116,11 +139,11 @@ export async function saveDraft(
     photo_left_url:    payload.photoLeftUrl,
     frame_size:        frameSize,
     remarks,
-    date_taken:        new Date().toISOString().split("T")[0],
-    updated_at:        new Date().toISOString(),
+    date_taken:        now.split("T")[0],
+    updated_at:        now,
   };
 
-  // Upsert path: revision_required → update in place and resubmit as pending_approval
+  // ── Upsert path: editing a revision_required record ─────────────────────────
   if (payload.assessmentId) {
     const { data: existing } = await admin
       .from("bmi_assessments")
@@ -130,14 +153,15 @@ export async function saveDraft(
       .single();
 
     if (existing?.status === "revision_required") {
+      const isSubmitting = payload.intent === "submit";
       const { error } = await admin
         .from("bmi_assessments")
         .update({
           ...record,
-          status:       "pending_approval",
-          admin_remarks: null,
-          submitted_at:  new Date().toISOString(),
-          certified_at:  new Date().toISOString(),
+          status:        isSubmitting ? "pending_approval" : "revision_required",
+          admin_remarks: isSubmitting ? null : undefined,
+          submitted_at:  isSubmitting ? now : undefined,
+          certified_at:  isSubmitting ? now : undefined,
         })
         .eq("id", payload.assessmentId);
 
@@ -147,27 +171,33 @@ export async function saveDraft(
     }
   }
 
-  // Normal draft path: find or create the user's draft
-  const { data: existing } = await admin
+  // ── Normal draft path ────────────────────────────────────────────────────────
+  const { data: existingDraft } = await admin
     .from("bmi_assessments")
     .select("id")
     .eq("user_id", user.id)
     .eq("status", "draft")
     .maybeSingle();
 
-  if (existing?.id) {
+  const targetStatus = payload.intent === "submit" ? "pending_approval" : "draft";
+  const submitTimestamps =
+    payload.intent === "submit"
+      ? { submitted_at: now, certified_at: now }
+      : {};
+
+  if (existingDraft?.id) {
     const { error } = await admin
       .from("bmi_assessments")
-      .update(record)
-      .eq("id", existing.id);
+      .update({ ...record, status: targetStatus, ...submitTimestamps })
+      .eq("id", existingDraft.id);
     if (error) return { error: error.message };
     revalidateAll();
-    return { id: existing.id };
+    return { id: existingDraft.id };
   }
 
   const { data, error } = await admin
     .from("bmi_assessments")
-    .insert({ ...record, status: "draft" })
+    .insert({ ...record, status: targetStatus, ...submitTimestamps })
     .select("id")
     .single();
   if (error) return { error: error.message };
@@ -187,13 +217,35 @@ export async function submitAssessment(
     return { error: (e as Error).message };
   }
 
+  // Fetch the record to validate completeness before transitioning
+  const { data: assessment } = await admin
+    .from("bmi_assessments")
+    .select("waist, hip, wrist, photo_right_url, photo_front_url, photo_left_url")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("status", "draft")
+    .single();
+
+  if (!assessment) return { error: "Draft not found." };
+
+  const missing: string[] = [];
+  if (!assessment.waist)           missing.push("waist");
+  if (!assessment.hip)             missing.push("hip");
+  if (!assessment.wrist)           missing.push("wrist");
+  if (!assessment.photo_right_url) missing.push("right photo");
+  if (!assessment.photo_front_url) missing.push("front photo");
+  if (!assessment.photo_left_url)  missing.push("left photo");
+  if (missing.length > 0)
+    return { error: `Complete your draft before submitting. Missing: ${missing.join(", ")}.` };
+
+  const now = new Date().toISOString();
   const { error } = await admin
     .from("bmi_assessments")
     .update({
       status:       "pending_approval",
-      certified_at: new Date().toISOString(),
-      submitted_at: new Date().toISOString(),
-      updated_at:   new Date().toISOString(),
+      certified_at: now,
+      submitted_at: now,
+      updated_at:   now,
     })
     .eq("id", id)
     .eq("user_id", user.id)
@@ -204,7 +256,6 @@ export async function submitAssessment(
   return {};
 }
 
-// Allows the user to recall a pending submission back to draft for editing
 export async function requestRevision(
   id: string
 ): Promise<{ error?: string }> {

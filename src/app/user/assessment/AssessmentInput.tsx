@@ -6,14 +6,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Upload, X, Lock, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { getBMIStatusColor } from "@/lib/bmi";
-import { getPNPStatusColor } from "@/lib/bmi";
 import {
-  useAssessmentStore,
-  computePreview,
-} from "@/store/assessmentStore";
+  Loader2, Upload, X, Lock, AlertTriangle,
+  CheckCircle2, Clock, Save, Send,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
+import { useAssessmentStore, computePreview } from "@/store/assessmentStore";
 import { saveDraft } from "./actions";
 import type { Assessment, Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -31,57 +30,91 @@ import {
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 
-// ─── Validation schema ────────────────────────────────────────────────────────
+// ─── Schemas ──────────────────────────────────────────────────────────────────
 
-const schema = z.object({
+// Validates a number string only if it is non-empty
+function optionalNumeric(min: number, max: number, label: string) {
+  return z.string().refine(
+    (v) => {
+      if (!v.trim()) return true;
+      const n = parseFloat(v);
+      return !isNaN(n) && n >= min && n <= max;
+    },
+    `Enter a valid ${label} (${min}–${max})`
+  );
+}
+
+// Draft: weight + height required; circumferences optional (validated only when filled)
+const draftSchema = z.object({
   weight: z
     .string()
-    .min(1, "Required")
+    .min(1, "Weight is required")
     .refine(
       (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 500; },
       "Enter a valid weight (1–500 kg)"
     ),
   height: z
     .string()
-    .min(1, "Required")
+    .min(1, "Height is required")
+    .refine(
+      (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 0.5 && n <= 3; },
+      "Enter height between 0.5–3 m"
+    ),
+  waist: optionalNumeric(1, 300, "waist (cm)"),
+  hip:   optionalNumeric(1, 300, "hip (cm)"),
+  wrist: optionalNumeric(1, 50,  "wrist (cm)"),
+});
+
+// Submit: all fields required
+const submitSchema = z.object({
+  weight: z
+    .string()
+    .min(1, "Weight is required")
+    .refine(
+      (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 500; },
+      "Enter a valid weight (1–500 kg)"
+    ),
+  height: z
+    .string()
+    .min(1, "Height is required")
     .refine(
       (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 0.5 && n <= 3; },
       "Enter height between 0.5–3 m"
     ),
   waist: z
     .string()
-    .min(1, "Waist measurement is required")
+    .min(1, "Waist is required to submit")
     .refine(
       (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 300; },
       "Enter a valid waist (1–300 cm)"
     ),
   hip: z
     .string()
-    .min(1, "Hip measurement is required")
+    .min(1, "Hip is required to submit")
     .refine(
       (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 300; },
       "Enter a valid hip (1–300 cm)"
     ),
   wrist: z
     .string()
-    .min(1, "Wrist measurement is required")
+    .min(1, "Wrist is required to submit")
     .refine(
       (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 50; },
       "Enter a valid wrist (1–50 cm)"
     ),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.infer<typeof draftSchema>;
 type PhotoView = "right" | "front" | "left";
 
 const PHOTO_LABELS: Record<PhotoView, string> = {
   right: "Right",
   front: "Front",
-  left: "Left",
+  left:  "Left",
 };
 
 interface PhotoFile {
-  file: File;
+  file:    File;
   preview: string;
 }
 
@@ -92,34 +125,32 @@ export function AssessmentInput({
   age,
   initialData,
 }: {
-  profile: Profile;
-  age: number | null;
+  profile:     Profile;
+  age:         number | null;
   initialData?: Assessment | null;
 }) {
   const router = useRouter();
 
-  // Lifecycle-based read/write logic
-  const isLocked =
-    initialData?.status === "pending_approval" || initialData?.status === "approved";
+  const isLocked   = initialData?.status === "pending_approval" || initialData?.status === "approved";
   const isRevision = initialData?.status === "revision_required";
 
-  const [isSaving, setIsSaving]           = useState(false);
-  const [isConfirming, setIsConfirming]   = useState(false);
-  const [cancelOpen, setCancelOpen]       = useState(false);
-  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
-  const [pendingSave, setPendingSave]     = useState<import("./actions").SaveDraftPayload | null>(null);
-  const [photos, setPhotos]               = useState<Partial<Record<PhotoView, PhotoFile>>>({});
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSubmitting,  setIsSubmitting]  = useState(false);
+  const [isConfirming,  setIsConfirming]  = useState(false);
+  const [cancelOpen,    setCancelOpen]    = useState(false);
+  const [confirmOpen,   setConfirmOpen]   = useState(false);
+  const [pendingSave,   setPendingSave]   = useState<import("./actions").SaveDraftPayload | null>(null);
+  const [photos,        setPhotos]        = useState<Partial<Record<PhotoView, PhotoFile>>>({});
 
   const { setProfileContext, setMeasurements } = useAssessmentStore();
 
-  // Sync profile context once on mount
   useEffect(() => {
     setProfileContext({ age, gender: profile.gender });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(draftSchema),
     defaultValues: {
       weight: initialData?.weight?.toString() ?? "",
       height: initialData?.height?.toString() ?? "",
@@ -136,7 +167,6 @@ export function AssessmentInput({
   const hipVal    = form.watch("hip");
   const wristVal  = form.watch("wrist");
 
-  // Sync form values into store for live preview
   useEffect(() => {
     setMeasurements({
       weightKg: parseFloat(weightVal) || null,
@@ -147,9 +177,8 @@ export function AssessmentInput({
     });
   }, [weightVal, heightVal, waistVal, hipVal, wristVal, setMeasurements]);
 
-  // Compute live preview from store state
-  const storeState  = useAssessmentStore();
-  const bmiPreview  = computePreview(storeState);
+  const storeState = useAssessmentStore();
+  const bmiPreview = computePreview(storeState);
 
   // ─── Photo handlers ───────────────────────────────────────────────────────
 
@@ -172,104 +201,166 @@ export function AssessmentInput({
 
   async function uploadPhoto(view: PhotoView, file: File, userId: string): Promise<string | null> {
     const supabase = createClient();
-    const ext = file.name.split(".").pop() ?? "jpg";
+    const ext  = file.name.split(".").pop() ?? "jpg";
     const path = `${userId}/${Date.now()}-${view}.${ext}`;
     const { error } = await supabase.storage
       .from("assessment-photos")
       .upload(path, file, { upsert: true });
-    if (error) {
-      console.error(`Photo upload (${view}):`, error.message);
-      return null;
-    }
+    if (error) { console.error(`Photo upload (${view}):`, error.message); return null; }
     return supabase.storage.from("assessment-photos").getPublicUrl(path).data.publicUrl;
   }
 
-  // ─── Submit ───────────────────────────────────────────────────────────────
+  async function uploadNewPhotos(userId: string): Promise<{
+    rightUrl: string | null;
+    frontUrl: string | null;
+    leftUrl:  string | null;
+    error?:   string;
+  }> {
+    const [newRight, newFront, newLeft] = await Promise.all([
+      photos.right ? uploadPhoto("right", photos.right.file, userId) : Promise.resolve(null),
+      photos.front ? uploadPhoto("front", photos.front.file, userId) : Promise.resolve(null),
+      photos.left  ? uploadPhoto("left",  photos.left.file,  userId) : Promise.resolve(null),
+    ]);
 
-  async function onSubmit(values: FormValues) {
-    setIsSaving(true);
+    if (
+      (photos.right && newRight === null) ||
+      (photos.front && newFront === null) ||
+      (photos.left  && newLeft  === null)
+    ) {
+      return { rightUrl: null, frontUrl: null, leftUrl: null, error: "One or more photos failed to upload. Please try again." };
+    }
+
+    return {
+      rightUrl: newRight ?? initialData?.photo_right_url ?? null,
+      frontUrl: newFront ?? initialData?.photo_front_url ?? null,
+      leftUrl:  newLeft  ?? initialData?.photo_left_url  ?? null,
+    };
+  }
+
+  // ─── Shared pre-confirm logic ─────────────────────────────────────────────
+
+  async function prepareAndConfirm(intent: "draft" | "submit") {
+    const setWorking = intent === "draft" ? setIsSavingDraft : setIsSubmitting;
+    setWorking(true);
+
     try {
+      const values = form.getValues();
+
+      if (intent === "draft") {
+        // Only weight + height are required for a draft save
+        const result = draftSchema.safeParse(values);
+        if (!result.success) {
+          await form.trigger(["weight", "height"]);
+          toast.error("Weight and height are required to save a draft.");
+          return;
+        }
+      } else {
+        // Full strict validation for submit
+        const result = submitSchema.safeParse(values);
+        if (!result.success) {
+          // Mirror errors into RHF so fields highlight
+          const fieldErrors = result.error.flatten().fieldErrors;
+          (Object.keys(fieldErrors) as (keyof FormValues)[]).forEach((field) => {
+            const msg = fieldErrors[field]?.[0];
+            if (msg) form.setError(field, { type: "manual", message: msg });
+          });
+
+          // Check missing photos too
+          const missingPhotos = (["right", "front", "left"] as PhotoView[]).filter(
+            (v) => !photos[v] && !(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
+          );
+          const missingFields = result.error.flatten().fieldErrors;
+          const missing = [
+            ...Object.entries(missingFields)
+              .filter(([, m]) => m && m.length > 0)
+              .map(([k]) => k),
+            ...missingPhotos.map((v) => `${v} photo`),
+          ];
+
+          toast.error(
+            missing.length > 0
+              ? `Required to submit: ${missing.join(", ")}.`
+              : "Please fix the highlighted errors before submitting."
+          );
+          return;
+        }
+
+        // Photos: all 3 required for submit
+        const missingPhotos = (["right", "front", "left"] as PhotoView[]).filter(
+          (v) => !photos[v] && !(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
+        );
+        if (missingPhotos.length > 0) {
+          toast.error(`All 3 photos are required to submit. Missing: ${missingPhotos.join(", ")} view(s).`);
+          return;
+        }
+      }
+
+      // Get authenticated user for uploads
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Session expired. Please sign in again.");
-        return;
-      }
+      if (!user) { toast.error("Session expired. Please sign in again."); return; }
 
-      const missingViews = (["right", "front", "left"] as PhotoView[]).filter(
-        (v) => !photos[v] && !(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
-      );
-      if (missingViews.length > 0) {
-        toast.error("All 3 photos are required.");
-        return;
-      }
-
-      const [newRightUrl, newFrontUrl, newLeftUrl] = await Promise.all([
-        photos.right ? uploadPhoto("right", photos.right.file, user.id) : Promise.resolve(null),
-        photos.front ? uploadPhoto("front", photos.front.file, user.id) : Promise.resolve(null),
-        photos.left  ? uploadPhoto("left",  photos.left.file,  user.id) : Promise.resolve(null),
-      ]);
-
-      if (
-        (photos.right && newRightUrl === null) ||
-        (photos.front && newFrontUrl === null) ||
-        (photos.left  && newLeftUrl  === null)
-      ) {
-        toast.error("One or more photos failed to upload. Please try again.");
-        return;
-      }
+      const uploaded = await uploadNewPhotos(user.id);
+      if (uploaded.error) { toast.error(uploaded.error); return; }
 
       setPendingSave({
+        intent,
         assessmentId:  isRevision ? initialData?.id : undefined,
         weight:        parseFloat(values.weight),
         height:        parseFloat(values.height),
-        waist:         parseFloat(values.waist),
-        hip:           parseFloat(values.hip),
-        wrist:         parseFloat(values.wrist),
-        photoRightUrl: newRightUrl ?? initialData?.photo_right_url ?? null,
-        photoFrontUrl: newFrontUrl ?? initialData?.photo_front_url ?? null,
-        photoLeftUrl:  newLeftUrl  ?? initialData?.photo_left_url  ?? null,
+        waist:         values.waist.trim()  ? parseFloat(values.waist)  : null,
+        hip:           values.hip.trim()    ? parseFloat(values.hip)    : null,
+        wrist:         values.wrist.trim()  ? parseFloat(values.wrist)  : null,
+        photoRightUrl: uploaded.rightUrl,
+        photoFrontUrl: uploaded.frontUrl,
+        photoLeftUrl:  uploaded.leftUrl,
       });
-      setSaveConfirmOpen(true);
+      setConfirmOpen(true);
+
     } finally {
-      setIsSaving(false);
+      setWorking(false);
     }
   }
+
+  // ─── Confirm save ─────────────────────────────────────────────────────────
 
   async function handleConfirmSave() {
     if (!pendingSave) return;
     setIsConfirming(true);
     try {
       const result = await saveDraft(pendingSave);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success("Draft saved successfully.");
-      setSaveConfirmOpen(false);
-      setPendingSave(null);
-      if (initialData) {
-        router.push("/user/assessment");
+      if (result.error) { toast.error(result.error); return; }
+
+      if (pendingSave.intent === "submit") {
+        toast.success(
+          isRevision
+            ? "Assessment resubmitted for approval."
+            : "Assessment submitted for approval."
+        );
       } else {
-        router.refresh();
+        toast.success("Draft saved successfully.");
       }
+
+      setConfirmOpen(false);
+      setPendingSave(null);
+      router.push("/user/assessment");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to save draft.");
+      toast.error(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setIsConfirming(false);
     }
-  }
-
-  function handleCancelConfirm() {
-    router.push("/user/assessment");
   }
 
   const dateTaken = new Date().toLocaleDateString("en-PH", {
     year: "numeric", month: "long", day: "numeric",
   });
 
+  const isBusy = isSavingDraft || isSubmitting;
+
   return (
     <div className="space-y-6 max-w-2xl">
+
+      {/* ── Page title ── */}
       <div>
         <h1 className="text-2xl font-bold">
           {isLocked
@@ -285,7 +376,7 @@ export function AssessmentInput({
             ? "This assessment has been submitted and cannot be edited."
             : isRevision
             ? "Your assessment was returned for revision. Update your measurements and resubmit."
-            : "Enter your measurements. Results calculate live — save a draft to review before submitting."}
+            : "Save a partial draft at any time. All fields are required before you can submit."}
         </p>
       </div>
 
@@ -295,9 +386,7 @@ export function AssessmentInput({
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
           <div>
             <p className="font-semibold">Assessment Approved</p>
-            <p className="text-emerald-700 mt-0.5">
-              Your BMI assessment has been approved. No further action is required.
-            </p>
+            <p className="text-emerald-700 mt-0.5">No further action is required.</p>
           </div>
         </div>
       )}
@@ -307,7 +396,7 @@ export function AssessmentInput({
           <div>
             <p className="font-semibold">Under Review</p>
             <p className="text-amber-700 mt-0.5">
-              Your assessment is pending admin approval. The form is locked until a decision is made.
+              Pending admin approval. The form is locked until a decision is made.
             </p>
           </div>
         </div>
@@ -322,14 +411,12 @@ export function AssessmentInput({
                 Admin remarks: <span className="italic">{initialData.admin_remarks}</span>
               </p>
             )}
-            <p className="mt-1 text-orange-600">
-              Please correct your measurements and resubmit.
-            </p>
+            <p className="mt-1 text-orange-600">Correct your measurements and resubmit.</p>
           </div>
         </div>
       )}
 
-      {/* Officer info strip */}
+      {/* ── Officer strip ── */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
         <span className="font-semibold uppercase">
           {profile.rank ? `${profile.rank.toUpperCase()} ` : ""}{profile.full_name}
@@ -340,9 +427,10 @@ export function AssessmentInput({
         <span className="ml-auto text-xs text-muted-foreground">{dateTaken}</span>
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* ── Form (no native submit — both buttons use onClick) ── */}
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
 
-        {/* ── Measurements ── */}
+        {/* Measurements */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
@@ -352,7 +440,7 @@ export function AssessmentInput({
             <CardDescription>
               {isLocked
                 ? "These measurements are locked and cannot be edited."
-                : "BMI calculates automatically as you type."}
+                : "BMI calculates automatically as you type. Weight and height are required to save a draft."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -373,23 +461,23 @@ export function AssessmentInput({
               </div>
 
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Circumference (cm)
+                Circumference (cm) — required to submit
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field>
-                  <FieldLabel htmlFor="waist">Waist *</FieldLabel>
+                  <FieldLabel htmlFor="waist">Waist</FieldLabel>
                   <Input id="waist" type="number" step="0.1" min="1" max="300"
                     placeholder="e.g. 80" disabled={isLocked} {...form.register("waist")} />
                   <FieldError errors={[errors.waist]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="hip">Hip *</FieldLabel>
+                  <FieldLabel htmlFor="hip">Hip</FieldLabel>
                   <Input id="hip" type="number" step="0.1" min="1" max="300"
                     placeholder="e.g. 95" disabled={isLocked} {...form.register("hip")} />
                   <FieldError errors={[errors.hip]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="wrist">Wrist *</FieldLabel>
+                  <FieldLabel htmlFor="wrist">Wrist</FieldLabel>
                   <Input id="wrist" type="number" step="0.1" min="1" max="50"
                     placeholder="e.g. 16" disabled={isLocked} {...form.register("wrist")} />
                   <FieldError errors={[errors.wrist]} />
@@ -460,13 +548,15 @@ export function AssessmentInput({
           </CardContent>
         </Card>
 
-        {/* ── 3-View Photos ── */}
+        {/* 3-View Photos */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">3-View Photos</CardTitle>
             <CardDescription>
-              All 3 photos are required.
-              {initialData && " Previously uploaded photos are preserved if you don't select new ones."}
+              {isLocked
+                ? "Photos cannot be changed."
+                : "All 3 photos are required to submit. You can save a draft without them."}
+              {!isLocked && initialData && " Previously uploaded photos are preserved if you don't select new ones."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -482,12 +572,14 @@ export function AssessmentInput({
                   }
                   onSelect={(f) => handlePhotoSelect(view, f)}
                   onRemove={() => removePhoto(view)}
+                  disabled={isLocked}
                 />
               ))}
             </div>
           </CardContent>
         </Card>
 
+        {/* ── Action buttons ── */}
         {isLocked ? (
           <Button
             type="button"
@@ -499,49 +591,94 @@ export function AssessmentInput({
           </Button>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
-            <Button type="submit" disabled={isSaving || !bmiPreview} className="w-full sm:flex-1">
-              {isSaving ? (
-                <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
-              ) : isRevision ? (
-                "Save & Resubmit"
+            {/* Primary: Submit */}
+            <Button
+              type="button"
+              disabled={isBusy || !bmiPreview}
+              onClick={() => prepareAndConfirm("submit")}
+              className="w-full sm:flex-1"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="size-4 mr-2 animate-spin" />Submitting…</>
               ) : (
-                "Save Draft"
+                <>
+                  <Send className="size-4 mr-2" />
+                  {isRevision ? "Save & Resubmit" : "Submit for Approval"}
+                </>
               )}
             </Button>
-            <Button type="button" variant="outline" disabled={isSaving}
-              onClick={() => setCancelOpen(true)} className="w-full sm:flex-1">
+
+            {/* Secondary: Save Draft */}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isBusy || !bmiPreview}
+              onClick={() => prepareAndConfirm("draft")}
+              className="w-full sm:flex-1"
+            >
+              {isSavingDraft ? (
+                <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
+              ) : (
+                <>
+                  <Save className="size-4 mr-2" />
+                  Save Draft
+                </>
+              )}
+            </Button>
+
+            {/* Cancel */}
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isBusy}
+              onClick={() => setCancelOpen(true)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
           </div>
         )}
       </form>
 
+      {/* ── Confirm save/submit dialog ── */}
       <ConfirmationDialog
-        open={saveConfirmOpen}
-        onOpenChange={setSaveConfirmOpen}
-        title={isRevision ? "Save & Resubmit?" : "Save Draft?"}
-        description={
-          isRevision
-            ? "Your corrected measurements will be saved and immediately resubmitted for admin review."
-            : "Your measurements and photos will be saved as a draft. You can review and submit it later."
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={
+          pendingSave?.intent === "submit"
+            ? isRevision ? "Resubmit Assessment?" : "Submit for Approval?"
+            : "Save Draft?"
         }
-        confirmLabel={isRevision ? "Save & Resubmit" : "Save Draft"}
+        description={
+          pendingSave?.intent === "submit"
+            ? isRevision
+              ? "Your corrected measurements will be saved and resubmitted for admin review."
+              : "Your assessment will be submitted to an admin for review. Make sure all information is correct."
+            : "Your progress will be saved as a draft. You can come back and complete it later."
+        }
+        confirmLabel={
+          pendingSave?.intent === "submit"
+            ? isRevision ? "Save & Resubmit" : "Submit for Approval"
+            : "Save Draft"
+        }
         isPending={isConfirming}
         onConfirm={handleConfirmSave}
       />
+
+      {/* ── Confirm discard dialog ── */}
       <ConfirmationDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         title="Discard Changes?"
         description="All unsaved measurements and photos will be lost."
         confirmLabel="Discard"
-        onConfirm={handleCancelConfirm}
+        onConfirm={() => router.push("/user/assessment")}
       />
     </div>
   );
 }
 
-// ─── Assessment photo slot ────────────────────────────────────────────────────
+// ─── Photo slot ───────────────────────────────────────────────────────────────
 
 function PhotoSlot({
   view,
@@ -550,16 +687,17 @@ function PhotoSlot({
   existingUrl,
   onSelect,
   onRemove,
+  disabled,
 }: {
-  view: PhotoView;
-  label: string;
-  photo: PhotoFile | undefined;
+  view:        PhotoView;
+  label:       string;
+  photo:       PhotoFile | undefined;
   existingUrl: string | null;
-  onSelect: (file: File) => void;
-  onRemove: () => void;
+  onSelect:    (file: File) => void;
+  onRemove:    () => void;
+  disabled?:   boolean;
 }) {
   const inputRef   = useRef<HTMLInputElement>(null);
-  const inputId    = `photo-${view}`;
   const displayUrl = photo?.preview ?? existingUrl ?? null;
 
   return (
@@ -569,7 +707,7 @@ function PhotoSlot({
         <div className="relative aspect-square overflow-hidden rounded-lg border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={displayUrl} alt={`${view} view`} className="h-full w-full object-cover" />
-          {(photo || existingUrl) && (
+          {!disabled && (photo || existingUrl) && (
             <button
               type="button"
               onClick={photo ? onRemove : () => inputRef.current?.click()}
@@ -583,9 +721,10 @@ function PhotoSlot({
       ) : (
         <button
           type="button"
+          disabled={disabled}
           onClick={() => inputRef.current?.click()}
           aria-label={`Upload ${label} view photo`}
-          className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary"
+          className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary disabled:pointer-events-none disabled:opacity-50"
         >
           <Upload className="size-5" />
           <span className="text-xs">Upload</span>
@@ -593,11 +732,12 @@ function PhotoSlot({
       )}
       <input
         ref={inputRef}
-        id={inputId}
+        id={`photo-${view}`}
         type="file"
         accept="image/*"
         aria-label={`Upload ${label} view photo`}
         className="sr-only"
+        disabled={disabled}
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onSelect(file);
