@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --eslint --src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npm install *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\jeric\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-jeric-Documents-GitHub-LUPPO-BMI-SYSTEM\\\\bec0a4d8-5932-4ed4-8794-bab1a905d52d\\\\tasks\\\\ba4xyiapk.output\" -Tail 10)",
+      "Bash(npx shadcn *)",
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jeric\\\\Documents\\\\GitHub\\\\LUPPO-BMI-SYSTEM\\\\src\\\\lib\" -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem src/app/admin, src/app/encoder, src/app/dashboard -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "PowerShell(robocopy \"src\\\\app\\\\admin\" \"src\\\\app\\\\system_admin\" /E /COPYALL /IS /IT /NFL /NDL /NJH /NJS 2>&1)",
+      "PowerShell(robocopy \"src\\\\app\\\\admin\" \"src\\\\app\\\\system_admin\" /E /NFL /NDL /NJH /NJS; echo \"Exit: $LASTEXITCODE\")",
+      "Bash(cp -r src/app/encoder src/app/admin_new)",
+      "Bash(cp -r src/app/dashboard src/app/user)"
+    ]
+  }
+}

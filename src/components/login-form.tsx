@@ -1,0 +1,181 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { cn } from "@/lib/utils";
+
+const schema = z.object({
+  badge_number: z
+    .string()
+    .min(1, "Badge number is required")
+    .regex(/^\d+$/, "Badge number must contain only digits"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+  const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { badge_number: "", password: "" },
+  });
+
+  const { formState: { errors, isSubmitting } } = form;
+
+  async function onSubmit(values: FormValues) {
+    setServerError("");
+    const supabase = createClient();
+
+    const { data: email } = await supabase.rpc("get_email_by_badge", {
+      p_badge: values.badge_number,
+    });
+
+    if (!email) {
+      setServerError("Badge number not found. Please check and try again.");
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password: values.password,
+    });
+
+    if (signInError) {
+      setServerError(signInError.message);
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user!.id)
+      .maybeSingle();
+
+    const role = profile?.role;
+    if (role === "system_admin") router.push("/system_admin");
+    else if (role === "admin") router.push("/admin");
+    else router.push("/user");
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardDescription>Sign in with your badge number</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FieldGroup>
+              {/* Badge Number — strictly numeric */}
+              <Field>
+                <FieldLabel htmlFor="badge_number">Badge Number</FieldLabel>
+                <Input
+                  id="badge_number"
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Enter your badge number"
+                  autoComplete="username"
+                  {...form.register("badge_number")}
+                />
+                <FieldError errors={[errors.badge_number]} />
+              </Field>
+
+              {/* Password */}
+              <Field>
+                <div className="flex items-center justify-between">
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <Link
+                    href="/forgot-password"
+                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    className="pr-10"
+                    {...form.register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-4" />
+                    ) : (
+                      <Eye className="size-4" />
+                    )}
+                  </button>
+                </div>
+                <FieldError errors={[errors.password]} />
+              </Field>
+
+              {/* Server error */}
+              {serverError && (
+                <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {serverError}
+                </p>
+              )}
+
+              <Field>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Signing in…" : "Sign In"}
+                </Button>
+              </Field>
+
+              <Field>
+                <p className="text-center text-sm text-muted-foreground">
+                  Don&apos;t have an account?{" "}
+                  <Link
+                    href="/signup"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Create account
+                  </Link>
+                </p>
+              </Field>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
