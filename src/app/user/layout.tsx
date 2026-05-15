@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/app-sidebar";
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import type { Role } from "@/lib/types";
 
 export default async function DashboardLayout({
@@ -22,12 +23,6 @@ export default async function DashboardLayout({
 
   const role = (profile?.role ?? "user") as Role;
 
-  const headerTitle: Record<Role, string> = {
-    system_admin: "System Admin Dashboard",
-    admin:        "Personnel Portal",
-    user:         "Personnel Portal",
-  };
-
   return (
     <SidebarProvider>
       <AppSidebar
@@ -42,7 +37,7 @@ export default async function DashboardLayout({
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mx-1 h-4" />
-          <span className="text-sm font-semibold">{headerTitle[role]}</span>
+          <DynamicBreadcrumb />
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </SidebarInset>

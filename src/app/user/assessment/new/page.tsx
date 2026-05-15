@@ -74,7 +74,7 @@ export default async function NewAssessmentPage({
   // Pending: read-only view, can't edit
   if (assessment?.status === "pending_approval") {
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="space-y-4 max-w-2xl mx-auto">
         <Breadcrumb />
         <PendingView assessment={assessment} name={profile.full_name} rank={profile.rank} />
       </div>
@@ -87,7 +87,7 @@ export default async function NewAssessmentPage({
     edit !== "1"
   ) {
     return (
-      <div className="space-y-4 max-w-2xl">
+      <div className="space-y-4 max-w-2xl mx-auto">
         <Breadcrumb />
         <AssessmentReview assessment={assessment} gender={profile.gender} />
       </div>
@@ -96,7 +96,7 @@ export default async function NewAssessmentPage({
 
   // Input step: no draft yet, or user clicked "Edit" on the review
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-4 max-w-2xl mx-auto">
       <Breadcrumb />
       <AssessmentInput
         profile={profile}

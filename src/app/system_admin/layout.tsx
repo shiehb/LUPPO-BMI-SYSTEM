@@ -4,13 +4,8 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import type { Role } from "@/lib/types";
-
-const HEADER_TITLE: Record<Role, string> = {
-  system_admin: "System Admin Dashboard",
-  admin:        "Assessment Review",
-  user:         "Personnel Portal",
-};
 
 export default async function AdminLayout({
   children,
@@ -47,7 +42,7 @@ export default async function AdminLayout({
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mx-1 h-4" />
-          <span className="text-sm font-semibold">{HEADER_TITLE[role]}</span>
+          <DynamicBreadcrumb />
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </SidebarInset>

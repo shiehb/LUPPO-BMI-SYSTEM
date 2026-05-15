@@ -74,7 +74,7 @@ export function AssessmentReview({
   ];
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -253,7 +253,7 @@ export function AssessmentReview({
               checked={certified}
               onChange={(e) => setCertified(e.target.checked)}
               disabled={!isComplete}
-              className="mt-0.5 h-4 w-4 cursor-pointer rounded border-gray-300 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-0.5 size-5 sm:size-4 cursor-pointer rounded border-gray-300 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
             />
             <span className="text-sm leading-relaxed">
               I certify that the measurements and photos provided are accurate
@@ -264,22 +264,23 @@ export function AssessmentReview({
         </CardContent>
       </Card>
 
-      <Button
-        className="w-full"
-        disabled={!isComplete || !certified}
-        onClick={() => setDialogOpen(true)}
-      >
-        <FileCheck className="mr-2 size-4" />
-        Submit for Approval
-      </Button>
-
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => router.push("/user/assessment")}
-      >
-        Continue Later
-      </Button>
+      <div className="flex gap-3 justify-end">
+        <Button
+          variant="outline"
+          className="flex-1 sm:flex-none sm:w-auto"
+          onClick={() => router.push("/user/assessment")}
+        >
+          Continue Later
+        </Button>
+        <Button
+          className="flex-1 sm:flex-none sm:w-auto"
+          disabled={!isComplete || !certified}
+          onClick={() => setDialogOpen(true)}
+        >
+          <FileCheck className="mr-2 size-4" />
+          Submit for Approval
+        </Button>
+      </div>
 
       <ConfirmationDialog
         open={dialogOpen}

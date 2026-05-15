@@ -27,7 +27,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { FieldError, FieldGroup } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -138,24 +138,6 @@ export function AssessmentInput({
   const storeState = useAssessmentStore();
   const bmiPreview = computePreview(storeState);
 
-  // ─── isFormComplete ───────────────────────────────────────────────────────
-  // All five measurements valid + all 3 photos present → enables Submit button.
-  const hasAllPhotos = (["right", "front", "left"] as PhotoView[]).every(
-    (v) => !!photos[v] || !!(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
-  );
-  const _w  = parseFloat(weightVal);
-  const _h  = parseFloat(heightVal);
-  const _wa = parseFloat(waistVal);
-  const _hp = parseFloat(hipVal);
-  const _wr = parseFloat(wristVal);
-  const isFormComplete =
-    !isNaN(_w)  && _w  >  0   && _w  <= 500 &&
-    !isNaN(_h)  && _h  >= 50  && _h  <= 300  &&
-    !isNaN(_wa) && _wa >  0   && _wa <= 300  &&
-    !isNaN(_hp) && _hp >  0   && _hp <= 300  &&
-    !isNaN(_wr) && _wr >  0   && _wr <= 50   &&
-    hasAllPhotos;
-
   // ─── Photo handlers ───────────────────────────────────────────────────────
 
   function handlePhotoSelect(view: PhotoView, file: File | undefined) {
@@ -261,7 +243,7 @@ export function AssessmentInput({
   const isBusy    = isSaving;
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
 
       {/* ── Page title ── */}
       <div>
@@ -513,13 +495,24 @@ export function AssessmentInput({
             Back to Assessments
           </Button>
         ) : (
-          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <div className="flex gap-3 justify-end">
+            {/* Cancel */}
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isBusy}
+              onClick={() => setCancelOpen(true)}
+              className="flex-1 sm:flex-none sm:w-auto"
+            >
+              Cancel
+            </Button>
+
             {/* Primary: Save → navigates to Review page */}
             <Button
               type="button"
               disabled={isBusy}
               onClick={handleSave}
-              className="w-full sm:flex-1"
+              className="flex-1 sm:flex-none sm:w-auto"
             >
               {isSaving ? (
                 <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
@@ -529,17 +522,6 @@ export function AssessmentInput({
                   Save
                 </>
               )}
-            </Button>
-
-            {/* Cancel */}
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isBusy}
-              onClick={() => setCancelOpen(true)}
-              className="w-full sm:w-auto"
-            >
-              Cancel
             </Button>
           </div>
         )}
