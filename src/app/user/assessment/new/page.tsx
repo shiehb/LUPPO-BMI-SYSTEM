@@ -36,24 +36,33 @@ const Breadcrumb = () => (
 export default async function NewAssessmentPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ edit?: string; id?: string }>;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { edit } = await searchParams;
+  const { edit, id } = await searchParams;
 
   const admin = getAdminClient();
+  const assessmentQuery = id
+    ? admin
+        .from("bmi_assessments")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : admin
+        .from("bmi_assessments")
+        .select("*")
+        .eq("user_id", user.id)
+        .in("status", ["draft", "pending_approval", "revision_required"])
+        .order("updated_at", { ascending: false })
+        .maybeSingle();
+
   const [profileResult, assessmentResult] = await Promise.all([
     admin.from("profiles").select("*").eq("id", user.id).single(),
-    admin
-      .from("bmi_assessments")
-      .select("*")
-      .eq("user_id", user.id)
-      .in("status", ["draft", "pending_approval", "revision_required"])
-      .order("updated_at", { ascending: false })
-      .maybeSingle(),
+    assessmentQuery,
   ]);
 
   const profile = profileResult.data as Profile | null;

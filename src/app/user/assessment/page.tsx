@@ -126,11 +126,18 @@ export default async function AssessmentPage() {
               Edit & Resubmit
             </Link>
           </Button>
+        ) : hasDraft ? (
+          <Button asChild className="gap-2 shrink-0">
+            <Link href="/user/assessment/new?edit=1">
+              <Plus className="size-4" />
+              Continue Draft
+            </Link>
+          </Button>
         ) : (
           <Button asChild className="gap-2 shrink-0">
             <Link href="/user/assessment/new">
               <Plus className="size-4" />
-              {hasDraft ? "Continue Draft" : "New Assessment"}
+              New Assessment
             </Link>
           </Button>
         )}
@@ -403,7 +410,7 @@ export default async function AssessmentPage() {
                         {(a.status === "draft" || a.status === "revision_required") && (
                           <div className="flex gap-1.5">
                             <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
-                              <Link href="/user/assessment/new?edit=1">Edit</Link>
+                              <Link href={`/user/assessment/new?edit=1&id=${a.id}`}>Edit</Link>
                             </Button>
                             {isAssessmentComplete(a) && (
                               <Button asChild size="sm" className="h-7 px-2 text-xs">
