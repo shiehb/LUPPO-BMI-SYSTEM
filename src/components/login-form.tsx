@@ -136,7 +136,7 @@ export function LoginForm() {
           )}
 
           <Field>
-            <Button type="submit" className="w-full h-auto py-4 px-2" disabled={isSubmitting}>
+            <Button type="submit" className="w-full h-11" disabled={isSubmitting}>
               {isSubmitting ? "Signing in…" : "Sign In"}
             </Button>
           </Field>

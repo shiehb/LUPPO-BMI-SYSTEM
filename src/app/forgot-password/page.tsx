@@ -88,14 +88,14 @@ export default function ForgotPasswordPage() {
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full h-auto py-4 px-2">
+          <Button type="submit" disabled={loading} className="w-full h-11">
             {loading ? "Sending…" : "Send Reset Link"}
           </Button>
         </form>
       </CardContent>
 
       <CardFooter className="border-t-0 bg-transparent px-4 pb-4 pt-0">
-        <Button asChild variant="outline" className="w-full h-auto py-4 px-2">
+        <Button asChild variant="outline" className="w-full h-11">
           <Link href="/login">
             <ArrowLeft size={15} />
             Back to Sign In

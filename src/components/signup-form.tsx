@@ -391,7 +391,7 @@ export function SignupForm() {
               )}
 
               <Field>
-                <Button type="submit" className="w-full h-auto py-4 px-2" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-11" disabled={isSubmitting}>
                   {isSubmitting ? "Creating account…" : "Create Account"}
                 </Button>
               </Field>

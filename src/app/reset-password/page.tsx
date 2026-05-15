@@ -85,7 +85,7 @@ export default function ResetPasswordPage() {
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full h-auto py-4 px-2">
+          <Button type="submit" disabled={loading} className="w-full h-11">
             {loading ? "Updating…" : "Update Password"}
           </Button>
         </form>
