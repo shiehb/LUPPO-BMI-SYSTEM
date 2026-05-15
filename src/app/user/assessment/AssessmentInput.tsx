@@ -348,43 +348,63 @@ export function AssessmentInput({
           </CardHeader>
           <CardContent>
             <FieldGroup>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="weight">Weight (kg) *</FieldLabel>
-                  <Input id="weight" type="number" step="0.1" min="1" max="500"
-                    placeholder="e.g. 70.5" disabled={isLocked} {...form.register("weight")} />
-                  <FieldError errors={[errors.weight]} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="height">Height (cm) *</FieldLabel>
-                  <Input id="height" type="number" step="1" min="50" max="300"
-                    placeholder="e.g. 170" disabled={isLocked} {...form.register("height")} />
-                  <FieldError errors={[errors.height]} />
-                </Field>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <label htmlFor="weight" className="w-2/5 shrink-0 text-sm font-medium">
+                    Weight (kg) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="w-3/5">
+                    <Input id="weight" type="number" step="0.1" min="1" max="500"
+                      placeholder="e.g. 70.5" disabled={isLocked} {...form.register("weight")} />
+                    <FieldError errors={[errors.weight]} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="height" className="w-2/5 shrink-0 text-sm font-medium">
+                    Height (cm) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="w-3/5">
+                    <Input id="height" type="number" step="1" min="50" max="300"
+                      placeholder="e.g. 170" disabled={isLocked} {...form.register("height")} />
+                    <FieldError errors={[errors.height]} />
+                  </div>
+                </div>
               </div>
 
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Circumference (cm) — required to submit
               </p>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field>
-                  <FieldLabel htmlFor="waist">Waist *</FieldLabel>
-                  <Input id="waist" type="number" step="0.1" min="1" max="300"
-                    placeholder="e.g. 80" disabled={isLocked} {...form.register("waist")} />
-                  <FieldError errors={[errors.waist]} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="hip">Hip *</FieldLabel>
-                  <Input id="hip" type="number" step="0.1" min="1" max="300"
-                    placeholder="e.g. 95" disabled={isLocked} {...form.register("hip")} />
-                  <FieldError errors={[errors.hip]} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="wrist">Wrist *</FieldLabel>
-                  <Input id="wrist" type="number" step="0.1" min="1" max="50"
-                    placeholder="e.g. 16" disabled={isLocked} {...form.register("wrist")} />
-                  <FieldError errors={[errors.wrist]} />
-                </Field>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <label htmlFor="waist" className="w-2/5 shrink-0 text-sm font-medium">
+                    Waist (cm) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="w-3/5">
+                    <Input id="waist" type="number" step="0.1" min="1" max="300"
+                      placeholder="e.g. 80" disabled={isLocked} {...form.register("waist")} />
+                    <FieldError errors={[errors.waist]} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="hip" className="w-2/5 shrink-0 text-sm font-medium">
+                    Hip (cm) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="w-3/5">
+                    <Input id="hip" type="number" step="0.1" min="1" max="300"
+                      placeholder="e.g. 95" disabled={isLocked} {...form.register("hip")} />
+                    <FieldError errors={[errors.hip]} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="wrist" className="w-2/5 shrink-0 text-sm font-medium">
+                    Wrist (cm) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="w-3/5">
+                    <Input id="wrist" type="number" step="0.1" min="1" max="50"
+                      placeholder="e.g. 16" disabled={isLocked} {...form.register("wrist")} />
+                    <FieldError errors={[errors.wrist]} />
+                  </div>
+                </div>
               </div>
 
               {/* Live BMI preview */}

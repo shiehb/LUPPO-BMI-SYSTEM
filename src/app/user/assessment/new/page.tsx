@@ -89,7 +89,7 @@ export default async function NewAssessmentPage({
     return (
       <div className="space-y-4 max-w-2xl">
         <Breadcrumb />
-        <AssessmentReview assessment={assessment} />
+        <AssessmentReview assessment={assessment} gender={profile.gender} />
       </div>
     );
   }
