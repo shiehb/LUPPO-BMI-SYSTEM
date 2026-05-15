@@ -72,26 +72,15 @@ export default async function NewAssessmentPage({
     );
   }
 
-  // Revision required: go straight to the edit form (no review step)
-  if (assessment?.status === "revision_required") {
+  // Draft or revision_required + not in edit mode → show review step
+  if (
+    (assessment?.status === "draft" || assessment?.status === "revision_required") &&
+    edit !== "1"
+  ) {
     return (
       <div className="space-y-4 max-w-2xl">
         <Breadcrumb />
-        <AssessmentInput
-          profile={profile}
-          age={age}
-          initialData={assessment}
-        />
-      </div>
-    );
-  }
-
-  // Draft exists and not in edit mode → show review step
-  if (assessment?.status === "draft" && edit !== "1") {
-    return (
-      <div className="space-y-4 max-w-2xl">
-        <Breadcrumb />
-        <AssessmentReview assessment={assessment} profile={profile} age={age} />
+        <AssessmentReview assessment={assessment} />
       </div>
     );
   }
@@ -103,7 +92,11 @@ export default async function NewAssessmentPage({
       <AssessmentInput
         profile={profile}
         age={age}
-        initialData={assessment?.status === "draft" ? assessment : null}
+        initialData={
+          assessment?.status === "draft" || assessment?.status === "revision_required"
+            ? assessment
+            : null
+        }
       />
     </div>
   );

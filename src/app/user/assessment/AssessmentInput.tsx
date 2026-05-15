@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2, Upload, X, Lock, AlertTriangle,
-  CheckCircle2, Clock, Save, Send,
+  CheckCircle2, Clock, Save,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
@@ -57,52 +57,14 @@ const draftSchema = z.object({
     .string()
     .min(1, "Height is required")
     .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 0.5 && n <= 3; },
-      "Enter height between 0.5–3 m"
+      (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 50 && n <= 300; },
+      "Enter height between 50–300 cm"
     ),
   waist: optionalNumeric(1, 300, "waist (cm)"),
   hip:   optionalNumeric(1, 300, "hip (cm)"),
   wrist: optionalNumeric(1, 50,  "wrist (cm)"),
 });
 
-// Submit: all fields required
-const submitSchema = z.object({
-  weight: z
-    .string()
-    .min(1, "Weight is required")
-    .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 500; },
-      "Enter a valid weight (1–500 kg)"
-    ),
-  height: z
-    .string()
-    .min(1, "Height is required")
-    .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n >= 0.5 && n <= 3; },
-      "Enter height between 0.5–3 m"
-    ),
-  waist: z
-    .string()
-    .min(1, "Waist is required to submit")
-    .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 300; },
-      "Enter a valid waist (1–300 cm)"
-    ),
-  hip: z
-    .string()
-    .min(1, "Hip is required to submit")
-    .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 300; },
-      "Enter a valid hip (1–300 cm)"
-    ),
-  wrist: z
-    .string()
-    .min(1, "Wrist is required to submit")
-    .refine(
-      (v) => { const n = parseFloat(v); return !isNaN(n) && n > 0 && n <= 50; },
-      "Enter a valid wrist (1–50 cm)"
-    ),
-});
 
 type FormValues = z.infer<typeof draftSchema>;
 type PhotoView = "right" | "front" | "left";
@@ -134,13 +96,9 @@ export function AssessmentInput({
   const isLocked   = initialData?.status === "pending_approval" || initialData?.status === "approved";
   const isRevision = initialData?.status === "revision_required";
 
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
-  const [isSubmitting,  setIsSubmitting]  = useState(false);
-  const [isConfirming,  setIsConfirming]  = useState(false);
-  const [cancelOpen,    setCancelOpen]    = useState(false);
-  const [confirmOpen,   setConfirmOpen]   = useState(false);
-  const [pendingSave,   setPendingSave]   = useState<import("./actions").SaveDraftPayload | null>(null);
-  const [photos,        setPhotos]        = useState<Partial<Record<PhotoView, PhotoFile>>>({});
+  const [isSaving,   setIsSaving]   = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [photos,     setPhotos]     = useState<Partial<Record<PhotoView, PhotoFile>>>({});
 
   const { setProfileContext, setMeasurements } = useAssessmentStore();
 
@@ -153,7 +111,7 @@ export function AssessmentInput({
     resolver: zodResolver(draftSchema),
     defaultValues: {
       weight: initialData?.weight?.toString() ?? "",
-      height: initialData?.height?.toString() ?? "",
+      height: initialData?.height ? (initialData.height * 100).toFixed(0) : "",
       waist:  initialData?.waist?.toString()  ?? "",
       hip:    initialData?.hip?.toString()    ?? "",
       wrist:  initialData?.wrist?.toString()  ?? "",
@@ -170,7 +128,7 @@ export function AssessmentInput({
   useEffect(() => {
     setMeasurements({
       weightKg: parseFloat(weightVal) || null,
-      heightM:  parseFloat(heightVal) || null,
+      heightM:  parseFloat(heightVal) / 100 || null,
       waistCm:  parseFloat(waistVal)  || null,
       hipCm:    parseFloat(hipVal)    || null,
       wristCm:  parseFloat(wristVal)  || null,
@@ -179,6 +137,24 @@ export function AssessmentInput({
 
   const storeState = useAssessmentStore();
   const bmiPreview = computePreview(storeState);
+
+  // ─── isFormComplete ───────────────────────────────────────────────────────
+  // All five measurements valid + all 3 photos present → enables Submit button.
+  const hasAllPhotos = (["right", "front", "left"] as PhotoView[]).every(
+    (v) => !!photos[v] || !!(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
+  );
+  const _w  = parseFloat(weightVal);
+  const _h  = parseFloat(heightVal);
+  const _wa = parseFloat(waistVal);
+  const _hp = parseFloat(hipVal);
+  const _wr = parseFloat(wristVal);
+  const isFormComplete =
+    !isNaN(_w)  && _w  >  0   && _w  <= 500 &&
+    !isNaN(_h)  && _h  >= 50  && _h  <= 300  &&
+    !isNaN(_wa) && _wa >  0   && _wa <= 300  &&
+    !isNaN(_hp) && _hp >  0   && _hp <= 300  &&
+    !isNaN(_wr) && _wr >  0   && _wr <= 50   &&
+    hasAllPhotos;
 
   // ─── Photo handlers ───────────────────────────────────────────────────────
 
@@ -237,65 +213,13 @@ export function AssessmentInput({
     };
   }
 
-  // ─── Shared pre-confirm logic ─────────────────────────────────────────────
+  // ─── Save draft and go to review ─────────────────────────────────────────
 
-  async function prepareAndConfirm(intent: "draft" | "submit") {
-    const setWorking = intent === "draft" ? setIsSavingDraft : setIsSubmitting;
-    setWorking(true);
-
+  async function handleSave() {
+    setIsSaving(true);
     try {
       const values = form.getValues();
 
-      if (intent === "draft") {
-        // Only weight + height are required for a draft save
-        const result = draftSchema.safeParse(values);
-        if (!result.success) {
-          await form.trigger(["weight", "height"]);
-          toast.error("Weight and height are required to save a draft.");
-          return;
-        }
-      } else {
-        // Full strict validation for submit
-        const result = submitSchema.safeParse(values);
-        if (!result.success) {
-          // Mirror errors into RHF so fields highlight
-          const fieldErrors = result.error.flatten().fieldErrors;
-          (Object.keys(fieldErrors) as (keyof FormValues)[]).forEach((field) => {
-            const msg = fieldErrors[field]?.[0];
-            if (msg) form.setError(field, { type: "manual", message: msg });
-          });
-
-          // Check missing photos too
-          const missingPhotos = (["right", "front", "left"] as PhotoView[]).filter(
-            (v) => !photos[v] && !(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
-          );
-          const missingFields = result.error.flatten().fieldErrors;
-          const missing = [
-            ...Object.entries(missingFields)
-              .filter(([, m]) => m && m.length > 0)
-              .map(([k]) => k),
-            ...missingPhotos.map((v) => `${v} photo`),
-          ];
-
-          toast.error(
-            missing.length > 0
-              ? `Required to submit: ${missing.join(", ")}.`
-              : "Please fix the highlighted errors before submitting."
-          );
-          return;
-        }
-
-        // Photos: all 3 required for submit
-        const missingPhotos = (["right", "front", "left"] as PhotoView[]).filter(
-          (v) => !photos[v] && !(initialData as Record<string, string | null> | null)?.[`photo_${v}_url`]
-        );
-        if (missingPhotos.length > 0) {
-          toast.error(`All 3 photos are required to submit. Missing: ${missingPhotos.join(", ")} view(s).`);
-          return;
-        }
-      }
-
-      // Get authenticated user for uploads
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { toast.error("Session expired. Please sign in again."); return; }
@@ -303,11 +227,15 @@ export function AssessmentInput({
       const uploaded = await uploadNewPhotos(user.id);
       if (uploaded.error) { toast.error(uploaded.error); return; }
 
-      setPendingSave({
-        intent,
+      const wNum = parseFloat(values.weight);
+      const hCm  = parseFloat(values.height);
+      const hNum = hCm / 100;
+
+      const result = await saveDraft({
+        intent:        "draft",
         assessmentId:  isRevision ? initialData?.id : undefined,
-        weight:        parseFloat(values.weight),
-        height:        parseFloat(values.height),
+        weight:        !isNaN(wNum) && wNum > 0    ? wNum : null,
+        height:        !isNaN(hNum) && hNum >= 0.5 ? hNum : null,
         waist:         values.waist.trim()  ? parseFloat(values.waist)  : null,
         hip:           values.hip.trim()    ? parseFloat(values.hip)    : null,
         wrist:         values.wrist.trim()  ? parseFloat(values.wrist)  : null,
@@ -315,39 +243,14 @@ export function AssessmentInput({
         photoFrontUrl: uploaded.frontUrl,
         photoLeftUrl:  uploaded.leftUrl,
       });
-      setConfirmOpen(true);
 
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  // ─── Confirm save ─────────────────────────────────────────────────────────
-
-  async function handleConfirmSave() {
-    if (!pendingSave) return;
-    setIsConfirming(true);
-    try {
-      const result = await saveDraft(pendingSave);
       if (result.error) { toast.error(result.error); return; }
 
-      if (pendingSave.intent === "submit") {
-        toast.success(
-          isRevision
-            ? "Assessment resubmitted for approval."
-            : "Assessment submitted for approval."
-        );
-      } else {
-        toast.success("Draft saved successfully.");
-      }
-
-      setConfirmOpen(false);
-      setPendingSave(null);
-      router.push("/user/assessment");
+      router.push("/user/assessment/new");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
-      setIsConfirming(false);
+      setIsSaving(false);
     }
   }
 
@@ -355,7 +258,7 @@ export function AssessmentInput({
     year: "numeric", month: "long", day: "numeric",
   });
 
-  const isBusy = isSavingDraft || isSubmitting;
+  const isBusy    = isSaving;
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -376,7 +279,7 @@ export function AssessmentInput({
             ? "This assessment has been submitted and cannot be edited."
             : isRevision
             ? "Your assessment was returned for revision. Update your measurements and resubmit."
-            : "Save a partial draft at any time. All fields are required before you can submit."}
+            : "Fill in all measurements and upload all 3 photos, then submit for approval."}
         </p>
       </div>
 
@@ -440,7 +343,7 @@ export function AssessmentInput({
             <CardDescription>
               {isLocked
                 ? "These measurements are locked and cannot be edited."
-                : "BMI calculates automatically as you type. Weight and height are required to save a draft."}
+                : "BMI calculates automatically as you type."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -453,9 +356,9 @@ export function AssessmentInput({
                   <FieldError errors={[errors.weight]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="height">Height (m) *</FieldLabel>
-                  <Input id="height" type="number" step="0.01" min="0.5" max="3"
-                    placeholder="e.g. 1.70" disabled={isLocked} {...form.register("height")} />
+                  <FieldLabel htmlFor="height">Height (cm) *</FieldLabel>
+                  <Input id="height" type="number" step="1" min="50" max="300"
+                    placeholder="e.g. 170" disabled={isLocked} {...form.register("height")} />
                   <FieldError errors={[errors.height]} />
                 </Field>
               </div>
@@ -465,19 +368,19 @@ export function AssessmentInput({
               </p>
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field>
-                  <FieldLabel htmlFor="waist">Waist</FieldLabel>
+                  <FieldLabel htmlFor="waist">Waist *</FieldLabel>
                   <Input id="waist" type="number" step="0.1" min="1" max="300"
                     placeholder="e.g. 80" disabled={isLocked} {...form.register("waist")} />
                   <FieldError errors={[errors.waist]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="hip">Hip</FieldLabel>
+                  <FieldLabel htmlFor="hip">Hip *</FieldLabel>
                   <Input id="hip" type="number" step="0.1" min="1" max="300"
                     placeholder="e.g. 95" disabled={isLocked} {...form.register("hip")} />
                   <FieldError errors={[errors.hip]} />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="wrist">Wrist</FieldLabel>
+                  <FieldLabel htmlFor="wrist">Wrist *</FieldLabel>
                   <Input id="wrist" type="number" step="0.1" min="1" max="50"
                     placeholder="e.g. 16" disabled={isLocked} {...form.register("wrist")} />
                   <FieldError errors={[errors.wrist]} />
@@ -555,7 +458,7 @@ export function AssessmentInput({
             <CardDescription>
               {isLocked
                 ? "Photos cannot be changed."
-                : "All 3 photos are required to submit. You can save a draft without them."}
+                : "All 3 photos are required to submit."}
               {!isLocked && initialData && " Previously uploaded photos are preserved if you don't select new ones."}
             </CardDescription>
           </CardHeader>
@@ -591,37 +494,19 @@ export function AssessmentInput({
           </Button>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
-            {/* Primary: Submit */}
+            {/* Primary: Save → navigates to Review page */}
             <Button
               type="button"
-              disabled={isBusy || !bmiPreview}
-              onClick={() => prepareAndConfirm("submit")}
+              disabled={isBusy}
+              onClick={handleSave}
               className="w-full sm:flex-1"
             >
-              {isSubmitting ? (
-                <><Loader2 className="size-4 mr-2 animate-spin" />Submitting…</>
-              ) : (
-                <>
-                  <Send className="size-4 mr-2" />
-                  {isRevision ? "Save & Resubmit" : "Submit for Approval"}
-                </>
-              )}
-            </Button>
-
-            {/* Secondary: Save Draft */}
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isBusy || !bmiPreview}
-              onClick={() => prepareAndConfirm("draft")}
-              className="w-full sm:flex-1"
-            >
-              {isSavingDraft ? (
+              {isSaving ? (
                 <><Loader2 className="size-4 mr-2 animate-spin" />Saving…</>
               ) : (
                 <>
                   <Save className="size-4 mr-2" />
-                  Save Draft
+                  Save
                 </>
               )}
             </Button>
@@ -639,31 +524,6 @@ export function AssessmentInput({
           </div>
         )}
       </form>
-
-      {/* ── Confirm save/submit dialog ── */}
-      <ConfirmationDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={
-          pendingSave?.intent === "submit"
-            ? isRevision ? "Resubmit Assessment?" : "Submit for Approval?"
-            : "Save Draft?"
-        }
-        description={
-          pendingSave?.intent === "submit"
-            ? isRevision
-              ? "Your corrected measurements will be saved and resubmitted for admin review."
-              : "Your assessment will be submitted to an admin for review. Make sure all information is correct."
-            : "Your progress will be saved as a draft. You can come back and complete it later."
-        }
-        confirmLabel={
-          pendingSave?.intent === "submit"
-            ? isRevision ? "Save & Resubmit" : "Submit for Approval"
-            : "Save Draft"
-        }
-        isPending={isConfirming}
-        onConfirm={handleConfirmSave}
-      />
 
       {/* ── Confirm discard dialog ── */}
       <ConfirmationDialog

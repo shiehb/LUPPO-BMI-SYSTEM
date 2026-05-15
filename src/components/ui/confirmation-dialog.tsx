@@ -23,6 +23,8 @@ interface Props {
   variant?: "default" | "destructive";
   /** When true the confirm button shows a spinner and both buttons are disabled. */
   isPending?: boolean;
+  /** When true the confirm button is disabled but the cancel button remains active. */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
 }
 
@@ -41,6 +43,7 @@ export function ConfirmationDialog({
   cancelLabel = "Cancel",
   variant = "default",
   isPending = false,
+  confirmDisabled = false,
   onConfirm,
 }: Props) {
   return (
@@ -54,7 +57,7 @@ export function ConfirmationDialog({
           <AlertDialogCancel disabled={isPending}>
             {cancelLabel}
           </AlertDialogCancel>
-          <Button variant={variant} onClick={onConfirm} disabled={isPending}>
+          <Button variant={variant} onClick={onConfirm} disabled={isPending || confirmDisabled}>
             {isPending ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />

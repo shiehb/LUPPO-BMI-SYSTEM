@@ -3,10 +3,10 @@ import Link from "next/link";
 import { AlertTriangle, Clock, History, Plus, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import type { Assessment, AssessmentStatus } from "@/lib/types";
+import type { Assessment, AssessmentStatus, Profile } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -29,6 +29,15 @@ function getAdminClient() {
   return createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
 }
 
+function calculateAge(birthdate: string): number {
+  const birth = new Date(birthdate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age;
+}
+
 function fmtDate(dateStr: string) {
   return new Date(dateStr + "T00:00:00").toLocaleDateString("en-PH", {
     year: "numeric",
@@ -47,6 +56,19 @@ function statusLabel(s: AssessmentStatus) {
   }[s];
 }
 
+function isAssessmentComplete(a: Assessment): boolean {
+  return (
+    Number(a.weight) > 0 &&
+    Number(a.height) >= 0.5 &&
+    Number(a.waist)  > 0 &&
+    Number(a.hip)    > 0 &&
+    Number(a.wrist)  > 0 &&
+    !!a.photo_right_url &&
+    !!a.photo_front_url &&
+    !!a.photo_left_url
+  );
+}
+
 function statusBadgeClass(s: AssessmentStatus) {
   return {
     draft:             "bg-gray-100 text-gray-700 border-gray-200",
@@ -63,17 +85,22 @@ export default async function AssessmentPage() {
   if (!user) redirect("/login");
 
   const admin = getAdminClient();
-  const { data: raw } = await admin
-    .from("bmi_assessments")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("date_taken", { ascending: false });
+  const [profileResult, assessmentsResult] = await Promise.all([
+    admin.from("profiles").select("*").eq("id", user.id).single(),
+    admin
+      .from("bmi_assessments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("date_taken", { ascending: false }),
+  ]);
 
-  const assessments = (raw ?? []) as Assessment[];
+  const profile     = profileResult.data as Profile | null;
+  const assessments = (assessmentsResult.data ?? []) as Assessment[];
   const latest      = assessments[0] ?? null;
   const pending     = assessments.find((a) => a.status === "pending_approval") ?? null;
   const revision    = assessments.find((a) => a.status === "revision_required") ?? null;
   const hasDraft    = assessments.some((a) => a.status === "draft");
+  const age         = profile?.birthdate ? calculateAge(profile.birthdate) : null;
 
   return (
     <div className="space-y-6">
@@ -146,69 +173,159 @@ export default async function AssessmentPage() {
         </div>
       )}
 
-      {/* ── Latest Status Card ── */}
+      {/* ── Latest Assessment Card ── */}
       {latest && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="size-4 text-primary" />
-              Latest Assessment
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              {/* BMI score */}
-              <div className="flex flex-col items-center justify-center rounded-xl bg-muted/50 px-8 py-4 text-center shrink-0">
-                <span className="text-4xl font-bold tabular-nums tracking-tight">
+          {/* ROW 1: Header — name/rank (left) · unit (right) */}
+          <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+            <div>
+              <p className="font-bold text-base uppercase tracking-wide">
+                {profile?.rank ? `${profile.rank.toUpperCase()} ` : ""}
+                {profile?.full_name ?? ""}
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {profile?.unit_station ?? "—"}
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className={cn("text-xs shrink-0 mt-0.5", statusBadgeClass(latest.status))}
+            >
+              {statusLabel(latest.status)}
+            </Badge>
+          </div>
+
+          <CardContent className="space-y-5 pt-5">
+            {/* ROW 2: Photos (70%) + BMI Score (30%) */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Photo gallery */}
+              <div className="flex-[7] grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { label: "Right", url: latest.photo_right_url },
+                    { label: "Front", url: latest.photo_front_url },
+                    { label: "Left",  url: latest.photo_left_url  },
+                  ] as { label: string; url: string | null }[]
+                ).map(({ label, url }) => (
+                  <div key={label} className="flex flex-col gap-1">
+                    <p className="text-center text-xs text-muted-foreground">{label}</p>
+                    {url ? (
+                      <div className="aspect-square overflow-hidden rounded-lg border bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`${label} view`}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex aspect-square items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+                        No photo
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* BMI score display */}
+              <div className="flex-[3] flex flex-col items-center justify-center rounded-xl bg-muted/50 px-4 py-6 text-center">
+                <span className="text-5xl font-bold tabular-nums tracking-tight">
                   {Number(latest.bmi_score).toFixed(2)}
                 </span>
-                <span className="mt-0.5 text-xs text-muted-foreground">BMI Score</span>
+                <span className="mt-1 text-xs text-muted-foreground">BMI Score</span>
+                <Badge
+                  variant="outline"
+                  className={cn("mt-3 font-semibold", getWHOBadgeClass(latest.bmi_who_status as WHOCategory))}
+                >
+                  {latest.bmi_who_status}
+                </Badge>
               </div>
+            </div>
 
-              <Separator orientation="vertical" className="hidden sm:block self-stretch" />
+            <Separator />
 
-              {/* Details */}
-              <div className="flex-1 space-y-3">
-                {/* Badges row */}
-                <div className="flex flex-wrap gap-2">
-                  <Badge
-                    variant="outline"
-                    className={cn("font-semibold", getWHOBadgeClass(latest.bmi_who_status as WHOCategory))}
-                  >
-                    {latest.bmi_who_status}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn("font-semibold", getPNPBadgeClass(latest.bmi_pnp_status as PNPClassification))}
-                  >
-                    PNP: {latest.bmi_pnp_status}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className={cn("text-xs", statusBadgeClass(latest.status))}
-                  >
-                    {statusLabel(latest.status)}
-                  </Badge>
+            {/* ROW 3: 50/50 — metadata (left) | classification (right) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x text-sm">
+
+              {/* Left 50%: two-column data grid */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-4 pb-4 sm:pb-0 sm:pr-6">
+                {/* Col 1: Age · Height · Weight · Gender */}
+                <div className="space-y-4">
+                  {age !== null && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Age</p>
+                      <p className="font-semibold">{age} yrs</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Height</p>
+                    <p className="font-semibold">{(Number(latest.height) * 100).toFixed(0)} cm</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Weight</p>
+                    <p className="font-semibold">{latest.weight} kg</p>
+                  </div>
+                  {profile?.gender && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Gender</p>
+                      <p className="font-semibold">{profile.gender}</p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Stats grid */}
-                <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-                  <dt className="text-muted-foreground">Date</dt>
-                  <dd className="font-medium">{fmtDate(latest.date_taken)}</dd>
-                  <dt className="text-muted-foreground">Weight</dt>
-                  <dd className="font-medium">{latest.weight} kg</dd>
-                  <dt className="text-muted-foreground">Height</dt>
-                  <dd className="font-medium">{latest.height} m</dd>
-                  {Number(latest.weight_to_lose) > 0 && (
-                    <>
-                      <dt className="text-muted-foreground">Weight to Lose</dt>
-                      <dd className="font-semibold text-orange-600">
-                        {latest.weight_to_lose} kg
-                      </dd>
-                    </>
-                  )}
-                </dl>
+                {/* Col 2: Date Taken · Normal Range · Weight to Lose */}
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Date Taken</p>
+                    <p className="font-semibold">{fmtDate(latest.date_taken)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Normal Range</p>
+                    <p className="font-semibold">
+                      {latest.normal_weight_min}–{latest.normal_weight_max} kg
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Weight to Lose</p>
+                    <p className={cn(
+                      "font-semibold",
+                      latest.bmi_who_status === "Normal" ? "text-green-600" : "text-orange-600"
+                    )}>
+                      {latest.bmi_who_status === "Normal"
+                        ? "Maintain"
+                        : `${latest.weight_to_lose} kg`}
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              {/* Right 50%: classification standards */}
+              <div className="space-y-4 pt-4 sm:pt-0 sm:pl-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Classification Standards
+                </p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">PNP Standard</p>
+                    <Badge
+                      variant="outline"
+                      className={cn("font-semibold", getPNPBadgeClass(latest.bmi_pnp_status as PNPClassification))}
+                    >
+                      {latest.bmi_pnp_status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1.5">WHO Standard</p>
+                    <Badge
+                      variant="outline"
+                      className={cn("font-semibold", getWHOBadgeClass(latest.bmi_who_status as WHOCategory))}
+                    >
+                      {latest.bmi_who_status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </CardContent>
         </Card>
@@ -217,10 +334,10 @@ export default async function AssessmentPage() {
       {/* ── History Table ── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <p className="flex items-center gap-2 text-base font-semibold">
             <History className="size-4 text-primary" />
             Assessment History
-          </CardTitle>
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           {assessments.length === 0 ? (
@@ -246,11 +363,11 @@ export default async function AssessmentPage() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Weight (kg)</TableHead>
-                    <TableHead className="text-right">Height (m)</TableHead>
+                    <TableHead className="text-right">Height (cm)</TableHead>
                     <TableHead className="text-right">BMI</TableHead>
                     <TableHead>Classification</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-20" />
+                    <TableHead className="w-36" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -260,7 +377,9 @@ export default async function AssessmentPage() {
                         {fmtDate(a.date_taken)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{a.weight}</TableCell>
-                      <TableCell className="text-right tabular-nums">{a.height}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {(Number(a.height) * 100).toFixed(0)}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">
                         {Number(a.bmi_score).toFixed(2)}
                       </TableCell>
@@ -282,11 +401,16 @@ export default async function AssessmentPage() {
                       </TableCell>
                       <TableCell>
                         {(a.status === "draft" || a.status === "revision_required") && (
-                          <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
-                            <Link href="/user/assessment/new">
-                              Edit
-                            </Link>
-                          </Button>
+                          <div className="flex gap-1.5">
+                            <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
+                              <Link href="/user/assessment/new?edit=1">Edit</Link>
+                            </Button>
+                            {isAssessmentComplete(a) && (
+                              <Button asChild size="sm" className="h-7 px-2 text-xs">
+                                <Link href="/user/assessment/new">Submit</Link>
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>

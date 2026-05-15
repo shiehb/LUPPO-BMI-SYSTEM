@@ -120,7 +120,7 @@ export function PendingView({
           <Separator />
 
           <Row label="Weight" value={`${assessment.weight} kg`} />
-          <Row label="Height" value={`${assessment.height} m`} />
+          <Row label="Height" value={`${(Number(assessment.height) * 100).toFixed(0)} cm`} />
           {assessment.waist != null && (
             <Row label="Waist" value={`${assessment.waist} cm`} />
           )}

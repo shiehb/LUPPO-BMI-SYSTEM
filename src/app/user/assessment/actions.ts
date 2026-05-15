@@ -36,8 +36,8 @@ export interface SaveDraftPayload {
    */
   intent:        "draft" | "submit";
   assessmentId?: string;     // when set, update this specific record (revision_required upsert)
-  weight:        number;     // always required (needed for BMI score)
-  height:        number;     // always required
+  weight:        number | null;  // null only allowed for draft intent
+  height:        number | null;  // null only allowed for draft intent
   waist:         number | null;
   hip:           number | null;
   wrist:         number | null;
@@ -67,6 +67,8 @@ export async function saveDraft(
   // ── Server-side strict validation (submit intent only) ──────────────────────
   if (payload.intent === "submit") {
     const missing: string[] = [];
+    if (!payload.weight)        missing.push("weight");
+    if (!payload.height)        missing.push("height");
     if (!payload.waist)         missing.push("waist");
     if (!payload.hip)           missing.push("hip");
     if (!payload.wrist)         missing.push("wrist");
@@ -77,71 +79,100 @@ export async function saveDraft(
       return { error: `Missing required fields: ${missing.join(", ")}.` };
   }
 
-  // ── Compute BMI & classifications ───────────────────────────────────────────
-  const { data: profileData } = await admin
-    .from("profiles")
-    .select("gender, birthdate")
-    .eq("id", user.id)
-    .single();
-
-  const age    = profileData?.birthdate ? calcAge(profileData.birthdate) : null;
-  const gender = (profileData?.gender as "Male" | "Female" | null) ?? null;
-
-  const bmi           = calculateBMI(payload.weight, payload.height);
-  const { min, max }  = getNormalWeightRange(payload.height);
-  const weightToLose  = getWeightToLose(payload.weight, payload.height);
-  const whoCategory   = getWHOCategory(bmi);
-
-  const pnpStatus = getPNPClassification({
-    bmi,
-    waistCm: payload.waist,
-    wristCm: payload.wrist,
-    heightM: payload.height,
-    age,
-    gender,
-  });
-
-  const frameSize: string | null =
-    payload.wrist !== null && gender !== null
-      ? getBodyFrame(payload.height * 100, payload.wrist, gender)
-      : null;
-
-  const remarks = generateRemarks({
-    bmi,
-    whoCategory,
-    pnpClassification: pnpStatus,
-    waistCm:     payload.waist,
-    hipCm:       payload.hip,
-    wristCm:     payload.wrist,
-    heightM:     payload.height,
-    gender,
-    frameSize,
-    weightToLose,
-  });
-
   const now = new Date().toISOString();
 
-  const record = {
-    user_id:           user.id,
-    weight:            payload.weight,
-    height:            payload.height,
-    waist:             payload.waist,
-    hip:               payload.hip,
-    wrist:             payload.wrist,
-    bmi_score:         parseFloat(bmi.toFixed(2)),
-    bmi_who_status:    whoCategory,
-    bmi_pnp_status:    pnpStatus,
-    weight_to_lose:    weightToLose,
-    normal_weight_min: min,
-    normal_weight_max: max,
-    photo_right_url:   payload.photoRightUrl,
-    photo_front_url:   payload.photoFrontUrl,
-    photo_left_url:    payload.photoLeftUrl,
-    frame_size:        frameSize,
-    remarks,
-    date_taken:        now.split("T")[0],
-    updated_at:        now,
-  };
+  // ── Build record ─────────────────────────────────────────────────────────────
+  // If weight/height are missing (partial draft) skip BMI computation entirely
+  // and store placeholder zeros so the row satisfies DB NOT NULL constraints.
+  let record: Record<string, unknown>;
+
+  if (payload.weight && payload.height) {
+    const { data: profileData } = await admin
+      .from("profiles")
+      .select("gender, birthdate")
+      .eq("id", user.id)
+      .single();
+
+    const age    = profileData?.birthdate ? calcAge(profileData.birthdate) : null;
+    const gender = (profileData?.gender as "Male" | "Female" | null) ?? null;
+
+    const bmi          = calculateBMI(payload.weight, payload.height);
+    const { min, max } = getNormalWeightRange(payload.height);
+    const weightToLose = getWeightToLose(payload.weight, payload.height);
+    const whoCategory  = getWHOCategory(bmi);
+
+    const pnpStatus = getPNPClassification({
+      bmi,
+      waistCm: payload.waist,
+      wristCm: payload.wrist,
+      heightM: payload.height,
+      age,
+      gender,
+    });
+
+    const frameSize: string | null =
+      payload.wrist !== null && gender !== null
+        ? getBodyFrame(payload.height * 100, payload.wrist, gender)
+        : null;
+
+    const remarks = generateRemarks({
+      bmi,
+      whoCategory,
+      pnpClassification: pnpStatus,
+      waistCm:     payload.waist,
+      hipCm:       payload.hip,
+      wristCm:     payload.wrist,
+      heightM:     payload.height,
+      gender,
+      frameSize,
+      weightToLose,
+    });
+
+    record = {
+      user_id:           user.id,
+      weight:            payload.weight,
+      height:            payload.height,
+      waist:             payload.waist,
+      hip:               payload.hip,
+      wrist:             payload.wrist,
+      bmi_score:         parseFloat(bmi.toFixed(2)),
+      bmi_who_status:    whoCategory,
+      bmi_pnp_status:    pnpStatus,
+      weight_to_lose:    weightToLose,
+      normal_weight_min: min,
+      normal_weight_max: max,
+      photo_right_url:   payload.photoRightUrl,
+      photo_front_url:   payload.photoFrontUrl,
+      photo_left_url:    payload.photoLeftUrl,
+      frame_size:        frameSize,
+      remarks,
+      date_taken:        now.split("T")[0],
+      updated_at:        now,
+    };
+  } else {
+    // Skeleton draft — weight/height not yet provided
+    record = {
+      user_id:           user.id,
+      weight:            0,
+      height:            0,
+      waist:             payload.waist,
+      hip:               payload.hip,
+      wrist:             payload.wrist,
+      bmi_score:         0,
+      bmi_who_status:    "",
+      bmi_pnp_status:    "",
+      weight_to_lose:    0,
+      normal_weight_min: 0,
+      normal_weight_max: 0,
+      photo_right_url:   payload.photoRightUrl,
+      photo_front_url:   payload.photoFrontUrl,
+      photo_left_url:    payload.photoLeftUrl,
+      frame_size:        null,
+      remarks:           null,
+      date_taken:        now.split("T")[0],
+      updated_at:        now,
+    };
+  }
 
   // ── Upsert path: editing a revision_required record ─────────────────────────
   if (payload.assessmentId) {
@@ -223,10 +254,10 @@ export async function submitAssessment(
     .select("waist, hip, wrist, photo_right_url, photo_front_url, photo_left_url")
     .eq("id", id)
     .eq("user_id", user.id)
-    .eq("status", "draft")
+    .in("status", ["draft", "revision_required"])
     .single();
 
-  if (!assessment) return { error: "Draft not found." };
+  if (!assessment) return { error: "Assessment not found." };
 
   const missing: string[] = [];
   if (!assessment.waist)           missing.push("waist");
@@ -242,14 +273,15 @@ export async function submitAssessment(
   const { error } = await admin
     .from("bmi_assessments")
     .update({
-      status:       "pending_approval",
-      certified_at: now,
-      submitted_at: now,
-      updated_at:   now,
+      status:        "pending_approval",
+      certified_at:  now,
+      submitted_at:  now,
+      updated_at:    now,
+      admin_remarks: null,
     })
     .eq("id", id)
     .eq("user_id", user.id)
-    .eq("status", "draft");
+    .in("status", ["draft", "revision_required"]);
 
   if (error) return { error: error.message };
   revalidateAll();
