@@ -10,20 +10,13 @@ import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { cn } from "@/lib/utils";
 
 const schema = z.object({
   badge_number: z
@@ -35,7 +28,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -84,98 +77,83 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Sign in with your badge number</CardDescription>
-        </CardHeader>
+    <CardContent>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="badge_number">Badge Number</FieldLabel>
+            <Input
+              id="badge_number"
+              type="number"
+              inputMode="numeric"
+              placeholder="Enter your badge number"
+              autoComplete="username"
+              className="h-11"
+              {...form.register("badge_number")}
+            />
+            <FieldError errors={[errors.badge_number]} />
+          </Field>
 
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <FieldGroup>
-              {/* Badge Number — strictly numeric */}
-              <Field>
-                <FieldLabel htmlFor="badge_number">Badge Number</FieldLabel>
-                <Input
-                  id="badge_number"
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Enter your badge number"
-                  autoComplete="username"
-                  {...form.register("badge_number")}
-                />
-                <FieldError errors={[errors.badge_number]} />
-              </Field>
+          <Field>
+            <div className="flex items-center justify-between">
+              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                autoComplete="current-password"
+                className="h-11 pr-10"
+                {...form.register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" />
+                ) : (
+                  <Eye className="size-4" />
+                )}
+              </button>
+            </div>
+            <FieldError errors={[errors.password]} />
+          </Field>
 
-              {/* Password */}
-              <Field>
-                <div className="flex items-center justify-between">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    autoComplete="current-password"
-                    className="pr-10"
-                    {...form.register("password")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="size-4" />
-                    ) : (
-                      <Eye className="size-4" />
-                    )}
-                  </button>
-                </div>
-                <FieldError errors={[errors.password]} />
-              </Field>
+          {serverError && (
+            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {serverError}
+            </p>
+          )}
 
-              {/* Server error */}
-              {serverError && (
-                <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {serverError}
-                </p>
-              )}
+          <Field>
+            <Button type="submit" className="w-full h-auto py-4 px-2" disabled={isSubmitting}>
+              {isSubmitting ? "Signing in…" : "Sign In"}
+            </Button>
+          </Field>
 
-              <Field>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Signing in…" : "Sign In"}
-                </Button>
-              </Field>
-
-              <Field>
-                <p className="text-center text-sm text-muted-foreground">
-                  Don&apos;t have an account?{" "}
-                  <Link
-                    href="/signup"
-                    className="underline underline-offset-4 hover:text-primary"
-                  >
-                    Create account
-                  </Link>
-                </p>
-              </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          <Field>
+            <p className="text-center text-sm text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/signup"
+                className="underline underline-offset-4 hover:text-primary"
+              >
+                Create account
+              </Link>
+            </p>
+          </Field>
+        </FieldGroup>
+      </form>
+    </CardContent>
   );
 }

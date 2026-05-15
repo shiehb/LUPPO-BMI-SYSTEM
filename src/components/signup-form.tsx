@@ -20,20 +20,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Combobox } from "@/components/ui/combobox";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import { cn } from "@/lib/utils";
 
 const schema = z
   .object({
@@ -73,7 +66,7 @@ function buildFullName(v: FormValues) {
     .join(" ");
 }
 
-export function SignupForm({ className, ...props }: React.ComponentProps<"div">) {
+export function SignupForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -151,15 +144,8 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create an Account</CardTitle>
-          <CardDescription>Register with your LUPPO credentials</CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+    <CardContent>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
             <FieldGroup>
               {/* ── Personal Information ── */}
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground -mb-2">
@@ -175,7 +161,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     id="first_name"
                     type="text"
                     placeholder="FIRST NAME"
-                    className="uppercase"
+                    className="h-11 uppercase"
                     {...form.register("first_name")}
                   />
                   <FieldError errors={[errors.first_name]} />
@@ -189,7 +175,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     id="last_name"
                     type="text"
                     placeholder="LAST NAME"
-                    className="uppercase"
+                    className="h-11 uppercase"
                     {...form.register("last_name")}
                   />
                   <FieldError errors={[errors.last_name]} />
@@ -205,7 +191,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     id="middle_name"
                     type="text"
                     placeholder="MIDDLE NAME"
-                    className="uppercase"
+                    className="h-11 uppercase"
                     {...form.register("middle_name")}
                   />
                   <FieldError errors={[errors.middle_name]} />
@@ -218,7 +204,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     name="qualifier"
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
@@ -240,7 +226,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     name="gender"
                     render={({ field }) => (
                       <Select value={field.value} onValueChange={field.onChange}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-11">
                           <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
                         <SelectContent>
@@ -262,6 +248,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     type="date"
                     min={MIN_BIRTHDATE}
                     max={MAX_BIRTHDATE}
+                    className="h-11"
                     {...form.register("birthdate")}
                   />
                   <FieldError errors={[errors.birthdate]} />
@@ -282,6 +269,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                   type="number"
                   inputMode="numeric"
                   placeholder="BADGE NUMBER"
+                  className="h-11"
                   {...form.register("badge_number")}
                 />
                 <FieldError errors={[errors.badge_number]} />
@@ -299,6 +287,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                       onValueChange={field.onChange}
                       placeholder="SELECT RANK"
                       searchPlaceholder="Search rank…"
+                      className="h-11"
                     />
                   )}
                 />
@@ -317,6 +306,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                       onValueChange={field.onChange}
                       placeholder="SELECT UNIT / STATION"
                       searchPlaceholder="Search station…"
+                      className="h-11"
                     />
                   )}
                 />
@@ -337,6 +327,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                   type="email"
                   placeholder="badge@luppo.gov.ph"
                   autoComplete="email"
+                  className="h-11"
                   {...form.register("email")}
                 />
                 <FieldError errors={[errors.email]} />
@@ -352,7 +343,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     type={showPassword ? "text" : "password"}
                     placeholder="At least 8 characters"
                     autoComplete="new-password"
-                    className="pr-10"
+                    className="h-11 pr-10"
                     {...form.register("password")}
                   />
                   <button
@@ -377,7 +368,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                     type={showConfirm ? "text" : "password"}
                     placeholder="Repeat your password"
                     autoComplete="new-password"
-                    className="pr-10"
+                    className="h-11 pr-10"
                     {...form.register("confirm_password")}
                   />
                   <button
@@ -400,7 +391,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
               )}
 
               <Field>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-auto py-4 px-2" disabled={isSubmitting}>
                   {isSubmitting ? "Creating account…" : "Create Account"}
                 </Button>
               </Field>
@@ -417,9 +408,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
                 </p>
               </Field>
             </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      </form>
+    </CardContent>
   );
 }

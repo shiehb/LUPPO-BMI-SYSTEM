@@ -1,35 +1,13 @@
 import { LoginForm } from "@/components/login-form"
-import { ShieldCheck } from "lucide-react"
+import AuthCard from "@/components/auth-card"
 
 export default function Page() {
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      {/* Left: LUPPO branding panel */}
-      <div className="relative hidden lg:flex flex-col gap-6 bg-[oklch(0.28_0.14_265)] p-10 text-white">
-        <div className="flex items-center gap-3 text-lg font-semibold">
-          <div className="flex size-9 items-center justify-center rounded-md bg-white/15">
-            <ShieldCheck className="size-5" />
-          </div>
-          <span>LUPPO BMI System</span>
-        </div>
-        <div className="mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-2xl font-bold leading-snug">
-              La Union Police Provincial Office
-            </p>
-            <p className="text-sm text-white/70">
-              Body Mass Index Tracking &amp; Health Monitoring System
-            </p>
-          </blockquote>
-        </div>
-      </div>
-
-      {/* Right: login form */}
-      <div className="flex items-center justify-center p-6 md:p-10">
-        <div className="w-full max-w-sm">
-          <LoginForm />
-        </div>
-      </div>
-    </div>
+    <AuthCard
+      title="Login"
+      description="Please enter your credentials to access your account.  "
+    >
+      <LoginForm />
+    </AuthCard>
   )
 }
