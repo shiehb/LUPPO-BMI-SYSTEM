@@ -34,6 +34,19 @@ export async function middleware(request: NextRequest) {
   // Public routes that don't require auth
   const publicRoutes = ["/login", "/signup", "/forgot-password", "/auth/callback"];
   if (publicRoutes.includes(pathname)) {
+    // Redirect already-authenticated users away from auth pages
+    if (user && (pathname === "/login" || pathname === "/signup")) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const role = profile?.role;
+      if (role === "system_admin") return NextResponse.redirect(new URL("/system_admin", request.url));
+      if (role === "admin") return NextResponse.redirect(new URL("/admin", request.url));
+      return NextResponse.redirect(new URL("/user", request.url));
+    }
     return supabaseResponse;
   }
 
