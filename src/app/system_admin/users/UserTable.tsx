@@ -37,7 +37,11 @@ import { fetchUsers } from "./actions";
 import { fetchUnitNames } from "@/app/system_admin/settings/actions";
 import type { Profile } from "@/lib/types";
 
-export function UserTable() {
+interface UserTableProps {
+  onArchived?: () => void;
+}
+
+export function UserTable({ onArchived }: UserTableProps) {
   const [data, setData] = useState<Profile[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
