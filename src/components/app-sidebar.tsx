@@ -4,7 +4,7 @@ import * as React from "react"
 import {
   ShieldCheck,
   LayoutGrid, Users, ClipboardList,
-  ClipboardCheck, ListChecks,
+  ClipboardCheck,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -21,20 +21,17 @@ import {
 } from "@/components/ui/sidebar"
 import type { Role } from "@/lib/types"
 
-const MY_ASSESSMENT_ITEM    = { title: "My Assessment",       url: "/user/assessment",              icon: <ClipboardCheck className="size-4" /> }
-const BMI_RESULTS_ITEM      = { title: "BMI Results",          url: "/system_admin/assessments",     icon: <ClipboardList  className="size-4" /> }
-const PERSONNEL_MASTER_ITEM = { title: "Personnel Master List", url: "/system_admin/personnel",       icon: <ListChecks     className="size-4" /> }
+const MY_ASSESSMENT_ITEM = { title: "My Assessment", url: "/user/assessment",          icon: <ClipboardCheck className="size-4" /> }
+const BMI_RESULTS_ITEM   = { title: "BMI Results",   url: "/system_admin/assessments", icon: <ClipboardList  className="size-4" /> }
 
 const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode }[]> = {
   system_admin: [
     { title: "Overview",        url: "/system_admin",       icon: <LayoutGrid className="size-4" /> },
     { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
-    PERSONNEL_MASTER_ITEM,
     BMI_RESULTS_ITEM,
     MY_ASSESSMENT_ITEM,
   ],
   admin: [
-    PERSONNEL_MASTER_ITEM,
     BMI_RESULTS_ITEM,
     MY_ASSESSMENT_ITEM,
   ],
