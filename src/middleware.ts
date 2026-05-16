@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
 
       const role = profile?.role;
       if (role === "system_admin") return NextResponse.redirect(new URL("/system_admin", request.url));
-      if (role === "admin") return NextResponse.redirect(new URL("/admin", request.url));
+      if (role === "admin") return NextResponse.redirect(new URL("/system_admin/assessments", request.url));
       return NextResponse.redirect(new URL("/user/assessment", request.url));
     }
     return supabaseResponse;
