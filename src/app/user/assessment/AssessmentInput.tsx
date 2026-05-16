@@ -215,7 +215,7 @@ export function AssessmentInput({
 
       const result = await saveDraft({
         intent:        "draft",
-        assessmentId:  isRevision ? initialData?.id : undefined,
+        assessmentId:  initialData?.id,
         weight:        !isNaN(wNum) && wNum > 0    ? wNum : null,
         height:        !isNaN(hNum) && hNum >= 0.5 ? hNum : null,
         waist:         values.waist.trim()  ? parseFloat(values.waist)  : null,
@@ -228,7 +228,7 @@ export function AssessmentInput({
 
       if (result.error) { toast.error(result.error); return; }
 
-      router.push("/user/assessment/new");
+      router.push(`/user/assessment/review/${result.id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong.");
     } finally {

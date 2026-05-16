@@ -100,7 +100,8 @@ export default async function AssessmentPage() {
   const pending     = assessments.find((a) => a.status === "pending_approval") ?? null;
   const revision    = assessments.find((a) => a.status === "revision_required") ?? null;
   const returned    = assessments.find((a) => a.status === "returned") ?? null;
-  const hasDraft    = assessments.some((a) => a.status === "draft");
+  const draft       = assessments.find((a) => a.status === "draft") ?? null;
+  const hasDraft    = draft !== null;
   const age         = profile?.birthdate ? calculateAge(profile.birthdate) : null;
 
   return (
@@ -122,28 +123,28 @@ export default async function AssessmentPage() {
           </Button>
         ) : revision ? (
           <Button asChild className="gap-2 shrink-0 bg-orange-600 hover:bg-orange-700">
-            <Link href="/user/assessment/new">
+            <Link href={`/user/assessment/edit/${revision.id}`}>
               <AlertTriangle className="size-4" />
               Edit & Resubmit
             </Link>
           </Button>
         ) : returned ? (
           <Button asChild className="gap-2 shrink-0 bg-red-600 hover:bg-red-700">
-            <Link href="/user/assessment/new">
+            <Link href={`/user/assessment/edit/${returned.id}`}>
               <AlertTriangle className="size-4" />
               Edit & Resubmit
             </Link>
           </Button>
-        ) : hasDraft ? (
+        ) : hasDraft && draft ? (
           <Button asChild className="gap-2 shrink-0">
-            <Link href="/user/assessment/new?edit=1">
+            <Link href={`/user/assessment/review/${draft.id}`}>
               <Plus className="size-4" />
               Continue Draft
             </Link>
           </Button>
         ) : (
           <Button asChild className="gap-2 shrink-0">
-            <Link href="/user/assessment/new">
+            <Link href="/user/assessment/add">
               <Plus className="size-4" />
               New Assessment
             </Link>
@@ -389,7 +390,7 @@ export default async function AssessmentPage() {
                 Submit your first assessment to start tracking your BMI history.
               </p>
               <Button asChild className="mt-4 gap-2">
-                <Link href="/user/assessment/new">
+                <Link href="/user/assessment/add">
                   <Plus className="size-4" />
                   Create First Assessment
                 </Link>
@@ -442,11 +443,11 @@ export default async function AssessmentPage() {
                         {(a.status === "draft" || a.status === "revision_required" || a.status === "returned") && (
                           <div className="flex gap-1.5">
                             <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
-                              <Link href={`/user/assessment/new?edit=1&id=${a.id}`}>Edit</Link>
+                              <Link href={`/user/assessment/edit/${a.id}`}>Edit</Link>
                             </Button>
                             {isAssessmentComplete(a) && (
                               <Button asChild size="sm" className="h-7 px-2 text-xs">
-                                <Link href="/user/assessment/new">Submit</Link>
+                                <Link href={`/user/assessment/review/${a.id}`}>Submit</Link>
                               </Button>
                             )}
                           </div>

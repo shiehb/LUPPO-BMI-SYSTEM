@@ -109,7 +109,7 @@ export function bmiReminderEmail(d: ReminderData): { subject: string; html: stri
       Log in to the LUPPO BMI System to enter your measurements:
     </p>
 
-    ${btn(d.appUrl + "/user/assessment/new", "Submit My Assessment")}
+    ${btn(d.appUrl + "/user/assessment/add", "Submit My Assessment")}
 
     <p style="margin-top:24px;font-size:13px;color:#9ca3af;">
       If you have already submitted your assessment, please disregard this message.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ColumnDef, Row, Table } from "@tanstack/react-table";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
@@ -13,13 +14,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { UserFormDialog } from "./UserFormDialog";
 import { archiveUser } from "./actions";
 import type { Profile, Role } from "@/lib/types";
 
 interface TableMeta {
   onRefresh: () => void;
-  onArchived?: () => void;
 }
 
 const ROLE_STYLES: Record<Role, string> = {
@@ -45,7 +44,7 @@ function RoleBadge({ role }: { role: Role }) {
 }
 
 function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }) {
-  const [editOpen, setEditOpen] = useState(false);
+  const router = useRouter();
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
@@ -65,7 +64,6 @@ function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }
     toast.success(`${profile.full_name} has been moved to archives.`);
     setArchiveOpen(false);
     meta.onRefresh();
-    meta.onArchived?.();
   }
 
   return (
@@ -77,7 +75,7 @@ function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+          <DropdownMenuItem onSelect={() => router.push(`/system_admin/users/edit/${profile.id}`)}>
             Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -89,16 +87,6 @@ function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <UserFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        initialData={profile}
-        onSuccess={() => {
-          setEditOpen(false);
-          meta.onRefresh();
-        }}
-      />
 
       <ConfirmationDialog
         open={archiveOpen}

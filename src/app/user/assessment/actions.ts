@@ -46,7 +46,13 @@ export interface SaveDraftPayload {
   photoLeftUrl:  string | null;
 }
 
-const REVALIDATE_PATHS = ["/user", "/user/assessment", "/user/assessment/new"];
+const REVALIDATE_PATHS = [
+  "/user",
+  "/user/assessment",
+  "/user/assessment/add",
+  "/user/assessment/edit",
+  "/user/assessment/review",
+];
 
 function revalidateAll() {
   REVALIDATE_PATHS.forEach((p) => revalidatePath(p));

@@ -108,7 +108,7 @@ export function AssessmentReview({
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5"
-          onClick={() => router.push("/user/assessment/new?edit=1")}
+          onClick={() => router.push(`/user/assessment/edit/${assessment.id}`)}
         >
           <Edit3 className="size-3.5" />
           Edit

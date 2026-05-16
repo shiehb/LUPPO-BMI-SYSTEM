@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Plus,
   Search,
   X,
 } from "lucide-react";
@@ -33,17 +32,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AddUserDialog } from "./AddUserDialog";
 import { columns } from "./columns";
 import { fetchUsers } from "./actions";
 import { fetchUnitNames } from "@/app/system_admin/settings/actions";
 import type { Profile } from "@/lib/types";
 
-interface Props {
-  onArchived?: () => void;
-}
-
-export function UserTable({ onArchived }: Props) {
+export function UserTable() {
   const [data, setData] = useState<Profile[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,9 +57,6 @@ export function UserTable({ onArchived }: Props) {
   // Pagination state
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-
-  // Dialog state
-  const [addOpen, setAddOpen] = useState(false);
 
   // Debounce: wait 400 ms after the user stops typing before fetching
   useEffect(() => {
@@ -118,7 +109,7 @@ export function UserTable({ onArchived }: Props) {
     manualPagination: true,
     manualFiltering: true,
     rowCount: totalCount,
-    meta: { onRefresh: loadData, onArchived },
+    meta: { onRefresh: loadData },
   });
 
   const skeletonCount = Math.min(limit, 8);
@@ -136,76 +127,68 @@ export function UserTable({ onArchived }: Props) {
   return (
     <div className="space-y-4">
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        {/* Filters group */}
-        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-          {/* Search */}
-          <div className="relative w-full max-w-xs">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search badge # or name…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-8 pr-7"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setSearchInput("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Role filter */}
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-36 shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All roles</SelectItem>
-              <SelectItem value="user">User</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="system_admin">System Admin</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Unit / Station filter */}
-          <Select value={stationFilter} onValueChange={setStationFilter}>
-            <SelectTrigger className="w-52 shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="max-h-72">
-              <SelectItem value="all">All stations</SelectItem>
-              {unitOptions.map((u) => (
-                <SelectItem key={u} value={u} className="uppercase">
-                  {u.toUpperCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Clear all filters */}
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearAllFilters}
-              className="text-muted-foreground hover:text-foreground"
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Search */}
+        <div className="relative w-full max-w-xs">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search badge # or name…"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-8 pr-7"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setSearchInput("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <X className="size-3.5 mr-1" />
-              Clear
-            </Button>
+              <X className="size-3.5" />
+            </button>
           )}
         </div>
 
-        <Button onClick={() => setAddOpen(true)} className="shrink-0">
-          <Plus />
-          New User
-        </Button>
+        {/* Role filter */}
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-36 shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            <SelectItem value="user">User</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="system_admin">System Admin</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Unit / Station filter */}
+        <Select value={stationFilter} onValueChange={setStationFilter}>
+          <SelectTrigger className="w-52 shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">All stations</SelectItem>
+            {unitOptions.map((u) => (
+              <SelectItem key={u} value={u} className="uppercase">
+                {u.toUpperCase()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Clear all filters */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-3.5 mr-1" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* ── Error banner ────────────────────────────────────────────── */}
@@ -346,15 +329,6 @@ export function UserTable({ onArchived }: Props) {
         </div>
       </div>
 
-      {/* ── Add User Dialog ─────────────────────────────────────────── */}
-      <AddUserDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        onSuccess={() => {
-          setAddOpen(false);
-          loadData();
-        }}
-      />
     </div>
   );
 }
