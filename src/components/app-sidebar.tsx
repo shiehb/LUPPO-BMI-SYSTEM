@@ -4,7 +4,7 @@ import * as React from "react"
 import {
   ShieldCheck,
   LayoutGrid, Users, ClipboardList,
-  LayoutDashboard, ClipboardCheck, ListChecks,
+  ClipboardCheck, ListChecks,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -39,7 +39,6 @@ const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNod
     MY_ASSESSMENT_ITEM,
   ],
   user: [
-    { title: "My Dashboard", url: "/user", icon: <LayoutDashboard className="size-4" /> },
     MY_ASSESSMENT_ITEM,
   ],
 }

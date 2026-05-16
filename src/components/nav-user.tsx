@@ -18,6 +18,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
+import { toast } from "sonner"
 import { createClient } from "@/lib/supabase/client"
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog"
 import type { Role } from "@/lib/types"
@@ -54,6 +55,7 @@ export function NavUser({
     setIsSigningOut(true)
     const supabase = createClient()
     await supabase.auth.signOut()
+    toast.success("You have been signed out successfully.")
     router.push("/login")
   }
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ const schema = z.object({
   badge_number: z
     .string()
     .min(1, "Badge number is required")
-    .regex(/^\d+$/, "Badge number must contain only digits"),
+    .regex(/^[^a-zA-Z]+$/, "Badge number must not contain letters"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -31,7 +32,6 @@ type FormValues = z.infer<typeof schema>;
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState("");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -40,16 +40,24 @@ export function LoginForm() {
 
   const { formState: { errors, isSubmitting } } = form;
 
+  const { onChange: rhfBadgeOnChange, ...badgeRegisterRest } =
+    form.register("badge_number");
+
+  function handleBadgeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    e.target.value = e.target.value.replace(/[a-zA-Z]/g, "");
+    rhfBadgeOnChange(e);
+  }
+
   async function onSubmit(values: FormValues) {
-    setServerError("");
     const supabase = createClient();
 
-    const { data: email } = await supabase.rpc("get_email_by_badge", {
+    const { data: email, error: rpcError } = await supabase.rpc("get_email_by_badge", {
       p_badge: values.badge_number,
     });
 
-    if (!email) {
-      setServerError("Badge number not found. Please check and try again.");
+    if (rpcError || !email) {
+      form.reset();
+      toast.error("Badge Number not found. Please check and try again.");
       return;
     }
 
@@ -59,7 +67,8 @@ export function LoginForm() {
     });
 
     if (signInError) {
-      setServerError(signInError.message);
+      form.resetField("password");
+      toast.error("Incorrect password. Please try again.");
       return;
     }
 
@@ -73,7 +82,7 @@ export function LoginForm() {
     const role = profile?.role;
     if (role === "system_admin") router.push("/system_admin");
     else if (role === "admin") router.push("/admin");
-    else router.push("/user");
+    else router.push("/user/assessment");
   }
 
   return (
@@ -84,12 +93,13 @@ export function LoginForm() {
             <FieldLabel htmlFor="badge_number">Badge Number</FieldLabel>
             <Input
               id="badge_number"
-              type="number"
+              type="text"
               inputMode="numeric"
               placeholder="Enter your badge number"
               autoComplete="username"
               className="h-11"
-              {...form.register("badge_number")}
+              onChange={handleBadgeChange}
+              {...badgeRegisterRest}
             />
             <FieldError errors={[errors.badge_number]} />
           </Field>
@@ -128,12 +138,6 @@ export function LoginForm() {
             </div>
             <FieldError errors={[errors.password]} />
           </Field>
-
-          {serverError && (
-            <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {serverError}
-            </p>
-          )}
 
           <Field>
             <Button type="submit" className="w-full h-11" disabled={isSubmitting}>

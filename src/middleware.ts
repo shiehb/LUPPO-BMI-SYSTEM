@@ -45,7 +45,7 @@ export async function middleware(request: NextRequest) {
       const role = profile?.role;
       if (role === "system_admin") return NextResponse.redirect(new URL("/system_admin", request.url));
       if (role === "admin") return NextResponse.redirect(new URL("/admin", request.url));
-      return NextResponse.redirect(new URL("/user", request.url));
+      return NextResponse.redirect(new URL("/user/assessment", request.url));
     }
     return supabaseResponse;
   }
@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
   if (pathname.startsWith("/system_admin") && role !== "system_admin") {
-    return NextResponse.redirect(new URL("/user", request.url));
+    return NextResponse.redirect(new URL("/user/assessment", request.url));
   }
 
   return supabaseResponse;
