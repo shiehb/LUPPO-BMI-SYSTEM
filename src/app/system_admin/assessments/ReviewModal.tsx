@@ -47,16 +47,16 @@ function DetailRow({
 }
 
 export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const optimisticallyApprove = usePersonnelStore((s) => s.optimisticallyApprove);
-  const optimisticallyReject = usePersonnelStore((s) => s.optimisticallyReject);
+  const optimisticallyReturn = usePersonnelStore((s) => s.optimisticallyReturn);
 
   function resetAndClose() {
-    setShowRejectForm(false);
-    setRejectionReason("");
+    setShowReturnForm(false);
+    setReturnReason("");
     onOpenChange(false);
   }
 
@@ -71,22 +71,22 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
     });
   }
 
-  function handleReject() {
+  function handleReturn() {
     if (!record?.assessment) return;
-    if (!rejectionReason.trim()) {
-      toast.error("Please provide a rejection reason.");
+    if (!returnReason.trim()) {
+      toast.error("Please provide a reason for returning the assessment.");
       return;
     }
-    optimisticallyReject(record.assessment.id, rejectionReason.trim());
+    optimisticallyReturn(record.assessment.id, returnReason.trim());
     resetAndClose();
     startTransition(async () => {
       const { error } = await updateAssessmentStatus(
         record.assessment!.id,
-        "rejected",
-        rejectionReason.trim()
+        "returned",
+        returnReason.trim()
       );
-      if (error) toast.error(`Rejection failed: ${error}`);
-      else toast.success(`${record.profile.full_name}'s assessment rejected.`);
+      if (error) toast.error(`Return failed: ${error}`);
+      else toast.success(`${record.profile.full_name}'s assessment returned for correction.`);
     });
   }
 
@@ -185,18 +185,18 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
             </>
           )}
 
-          {/* Rejection reason form (shown only when admin clicks "Reject Submission") */}
-          {showRejectForm && (
+          {/* Return reason form (shown only when admin clicks "Return for Correction") */}
+          {showReturnForm && (
             <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-3">
-              <Label htmlFor="reject-reason" className="text-red-800">
-                Reason for rejection <span className="text-red-500">*</span>
+              <Label htmlFor="return-reason" className="text-red-800">
+                Reason for return <span className="text-red-500">*</span>
               </Label>
               <Textarea
-                id="reject-reason"
+                id="return-reason"
                 placeholder="e.g. Measurements appear inconsistent with prior record…"
                 rows={3}
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
                 disabled={isPending}
                 className="bg-white"
               />
@@ -213,16 +213,16 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
           {/* Right side: action buttons — only shown for pending assessments */}
           {isPendingStatus && (
             <div className="flex flex-col gap-2 sm:flex-row">
-              {!showRejectForm ? (
+              {!showReturnForm ? (
                 <>
                   <Button
                     variant="outline"
                     className="border-red-300 text-red-700 hover:bg-red-50"
-                    onClick={() => setShowRejectForm(true)}
+                    onClick={() => setShowReturnForm(true)}
                     disabled={isPending}
                   >
                     <XCircle className="size-4 mr-1.5" />
-                    Reject Submission
+                    Return for Correction
                   </Button>
                   <Button
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
@@ -242,8 +242,8 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setShowRejectForm(false);
-                      setRejectionReason("");
+                      setShowReturnForm(false);
+                      setReturnReason("");
                     }}
                     disabled={isPending}
                   >
@@ -251,15 +251,15 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
                   </Button>
                   <Button
                     variant="destructive"
-                    onClick={handleReject}
-                    disabled={isPending || !rejectionReason.trim()}
+                    onClick={handleReturn}
+                    disabled={isPending || !returnReason.trim()}
                   >
                     {isPending ? (
                       <Loader2 className="size-4 mr-1.5 animate-spin" />
                     ) : (
                       <XCircle className="size-4 mr-1.5" />
                     )}
-                    Confirm Rejection
+                    Confirm Return
                   </Button>
                 </>
               )}

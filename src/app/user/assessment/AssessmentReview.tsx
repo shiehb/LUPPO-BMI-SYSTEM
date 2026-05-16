@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Edit3, FileCheck } from "lucide-react";
+import { Edit3, FileCheck, RotateCcw } from "lucide-react";
 import { submitAssessment } from "./actions";
 import type { Assessment } from "@/lib/types";
 import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
@@ -75,6 +75,27 @@ export function AssessmentReview({
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Returned-by-admin banner */}
+      {assessment.status === "returned" && (
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <RotateCcw className="mt-0.5 size-4 shrink-0 text-red-600" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">
+              Returned for Correction
+            </p>
+            {assessment.rejection_reason && (
+              <p className="mt-0.5 text-xs text-red-700">
+                <span className="font-medium">Reason: </span>
+                {assessment.rejection_reason}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-red-700">
+              Please edit your measurements and re-submit for approval.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>

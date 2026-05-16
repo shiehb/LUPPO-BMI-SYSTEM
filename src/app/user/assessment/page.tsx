@@ -51,7 +51,7 @@ function statusLabel(s: AssessmentStatus) {
     draft:             "Draft",
     pending_approval:  "Pending",
     approved:          "Approved",
-    rejected:          "Rejected",
+    returned:          "Returned",
     revision_required: "Revision Required",
   }[s];
 }
@@ -74,7 +74,7 @@ function statusBadgeClass(s: AssessmentStatus) {
     draft:             "bg-gray-100 text-gray-700 border-gray-200",
     pending_approval:  "bg-amber-100 text-amber-800 border-amber-200",
     approved:          "bg-green-100 text-green-800 border-green-200",
-    rejected:          "bg-red-100 text-red-800 border-red-200",
+    returned:          "bg-red-100 text-red-800 border-red-200",
     revision_required: "bg-orange-100 text-orange-800 border-orange-200",
   }[s];
 }
@@ -99,6 +99,7 @@ export default async function AssessmentPage() {
   const latest      = assessments[0] ?? null;
   const pending     = assessments.find((a) => a.status === "pending_approval") ?? null;
   const revision    = assessments.find((a) => a.status === "revision_required") ?? null;
+  const returned    = assessments.find((a) => a.status === "returned") ?? null;
   const hasDraft    = assessments.some((a) => a.status === "draft");
   const age         = profile?.birthdate ? calculateAge(profile.birthdate) : null;
 
@@ -121,6 +122,13 @@ export default async function AssessmentPage() {
           </Button>
         ) : revision ? (
           <Button asChild className="gap-2 shrink-0 bg-orange-600 hover:bg-orange-700">
+            <Link href="/user/assessment/new">
+              <AlertTriangle className="size-4" />
+              Edit & Resubmit
+            </Link>
+          </Button>
+        ) : returned ? (
+          <Button asChild className="gap-2 shrink-0 bg-red-600 hover:bg-red-700">
             <Link href="/user/assessment/new">
               <AlertTriangle className="size-4" />
               Edit & Resubmit
@@ -178,6 +186,27 @@ export default async function AssessmentPage() {
             )}
             <p className="mt-1 text-xs text-orange-600">
               Please correct your assessment and resubmit.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Returned banner ── */}
+      {returned && (
+        <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-600" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-800">
+              Assessment Returned for Correction
+            </p>
+            {returned.rejection_reason && (
+              <p className="mt-1 text-xs text-red-700">
+                <span className="font-medium">Reason:</span>{" "}
+                {returned.rejection_reason}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-red-600">
+              Please update your measurements and resubmit.
             </p>
           </div>
         </div>
@@ -410,7 +439,7 @@ export default async function AssessmentPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {(a.status === "draft" || a.status === "revision_required") && (
+                        {(a.status === "draft" || a.status === "revision_required" || a.status === "returned") && (
                           <div className="flex gap-1.5">
                             <Button asChild size="sm" variant="outline" className="h-7 px-2 text-xs">
                               <Link href={`/user/assessment/new?edit=1&id=${a.id}`}>Edit</Link>

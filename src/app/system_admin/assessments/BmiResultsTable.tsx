@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useCallback } from "react";
+import { useEffect, useMemo, useState, useTransition, useCallback } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   useReactTable,
@@ -47,7 +47,6 @@ import {
 import { usePersonnelStore } from "@/store/personnelStore";
 import { filterPersonnelRecords } from "@/lib/utils/filter";
 import { notifyPersonnel } from "../personnel/actions";
-import { ReviewModal } from "./ReviewModal";
 import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
@@ -55,7 +54,7 @@ import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 const STATUS_CONFIG: Record<PersonnelStatus, { label: string; className: string }> = {
   approved:         { label: "Approved",          className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   pending_approval: { label: "Pending",            className: "bg-amber-100 text-amber-800 border-amber-200" },
-  rejected:         { label: "Rejected",           className: "bg-red-100 text-red-800 border-red-200" },
+  returned:         { label: "Returned",            className: "bg-red-100 text-red-800 border-red-200" },
   revision_required:{ label: "Revision Required",  className: "bg-orange-100 text-orange-800 border-orange-200" },
   not_started:      { label: "Not Started",        className: "bg-gray-100 text-gray-600 border-gray-200" },
 };
@@ -107,7 +106,7 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "all",              label: "All" },
   { value: "approved",         label: "Approved" },
   { value: "pending_approval", label: "Pending" },
-  { value: "rejected",         label: "Rejected" },
+  { value: "returned",         label: "Returned" },
   { value: "not_started",      label: "Not Started" },
 ];
 
@@ -116,12 +115,11 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 function ActionCell({
   row,
   month,
-  onReview,
 }: {
   row: PersonnelRecord;
   month: string;
-  onReview: (row: PersonnelRecord) => void;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // No assessment yet — offer an email reminder
@@ -146,13 +144,13 @@ function ActionCell({
     );
   }
 
-  // Pending — open modal to review (approve / reject)
+  // Pending — navigate to full-page review
   if (row.status === "pending_approval") {
     return (
       <Button
         size="sm"
         className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={() => onReview(row)}
+        onClick={() => router.push(`/system_admin/assessments/${row.assessment!.id}`)}
       >
         <ClipboardCheck className="size-3" />
         Review Assessment
@@ -160,13 +158,13 @@ function ActionCell({
     );
   }
 
-  // Already reviewed — open modal in read-only mode
+  // Already reviewed — navigate to full-page view (read-only)
   return (
     <Button
       size="sm"
       variant="outline"
       className="gap-1.5 text-xs"
-      onClick={() => onReview(row)}
+      onClick={() => router.push(`/system_admin/assessments/${row.assessment!.id}`)}
     >
       <Eye className="size-3" />
       View Details
@@ -176,10 +174,7 @@ function ActionCell({
 
 // ─── Table columns ─────────────────────────────────────────────────────────────
 
-function buildColumns(
-  month: string,
-  onReview: (row: PersonnelRecord) => void
-): ColumnDef<PersonnelRecord>[] {
+function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
   return [
     {
       id: "officer",
@@ -266,7 +261,7 @@ function buildColumns(
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <ActionCell row={row.original} month={month} onReview={onReview} />
+        <ActionCell row={row.original} month={month} />
       ),
       enableSorting: false,
     },
@@ -298,7 +293,6 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
 
   const [sorting, setSorting]             = useState<SortingState>([]);
   const [selectedMonth, setSelectedMonth] = useState(initialMonth);
-  const [reviewTarget, setReviewTarget]   = useState<PersonnelRecord | null>(null);
 
   useEffect(() => {
     initRecords(initialRecords);
@@ -314,8 +308,15 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
     [pathname, router, searchParams]
   );
 
-  const filtered = filterPersonnelRecords(records, { statusFilter, searchQuery });
-  const columns  = buildColumns(selectedMonth, setReviewTarget);
+  const filtered = useMemo(
+    () => filterPersonnelRecords(records, { statusFilter, searchQuery }),
+    [records, statusFilter, searchQuery]
+  );
+
+  const columns = useMemo(
+    () => buildColumns(selectedMonth),
+    [selectedMonth]
+  );
 
   const table = useReactTable({
     data: filtered,
@@ -332,8 +333,7 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
   const currentPage = table.getState().pagination.pageIndex + 1;
 
   return (
-    <>
-      <div className="space-y-4">
+    <div className="space-y-4">
         {/* Filters row */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Status tabs */}
@@ -348,7 +348,7 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setStatusFilter(value)}
+                  onClick={() => { setStatusFilter(value); table.setPageIndex(0); }}
                   className={[
                     "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                     active
@@ -475,14 +475,6 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
             </div>
           </div>
         )}
-      </div>
-
-      {/* Review / View-details modal — single instance hoisted to table root */}
-      <ReviewModal
-        record={reviewTarget}
-        open={reviewTarget !== null}
-        onOpenChange={(open) => { if (!open) setReviewTarget(null); }}
-      />
-    </>
+    </div>
   );
 }

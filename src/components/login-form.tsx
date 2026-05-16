@@ -81,7 +81,7 @@ export function LoginForm() {
 
     const role = profile?.role;
     if (role === "system_admin") router.push("/system_admin");
-    else if (role === "admin") router.push("/admin");
+    else if (role === "admin") router.push("/system_admin/assessments");
     else router.push("/user/assessment");
   }
 

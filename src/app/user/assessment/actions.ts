@@ -174,7 +174,7 @@ export async function saveDraft(
     };
   }
 
-  // ── Upsert path: editing a revision_required record ─────────────────────────
+  // ── Upsert path: editing a revision_required or returned record ─────────────
   if (payload.assessmentId) {
     const { data: existing } = await admin
       .from("bmi_assessments")
@@ -183,16 +183,18 @@ export async function saveDraft(
       .eq("user_id", user.id)
       .single();
 
-    if (existing?.status === "revision_required") {
+    if (existing?.status === "revision_required" || existing?.status === "returned") {
+      const currentStatus = existing.status;
       const isSubmitting = payload.intent === "submit";
       const { error } = await admin
         .from("bmi_assessments")
         .update({
           ...record,
-          status:        isSubmitting ? "pending_approval" : "revision_required",
-          admin_remarks: isSubmitting ? null : undefined,
-          submitted_at:  isSubmitting ? now : undefined,
-          certified_at:  isSubmitting ? now : undefined,
+          status:           isSubmitting ? "pending_approval" : currentStatus,
+          admin_remarks:    isSubmitting ? null : undefined,
+          rejection_reason: isSubmitting ? null : undefined,
+          submitted_at:     isSubmitting ? now : undefined,
+          certified_at:     isSubmitting ? now : undefined,
         })
         .eq("id", payload.assessmentId);
 
@@ -254,7 +256,7 @@ export async function submitAssessment(
     .select("waist, hip, wrist, photo_right_url, photo_front_url, photo_left_url")
     .eq("id", id)
     .eq("user_id", user.id)
-    .in("status", ["draft", "revision_required"])
+    .in("status", ["draft", "revision_required", "returned"])
     .single();
 
   if (!assessment) return { error: "Assessment not found." };
@@ -281,7 +283,7 @@ export async function submitAssessment(
     })
     .eq("id", id)
     .eq("user_id", user.id)
-    .in("status", ["draft", "revision_required"]);
+    .in("status", ["draft", "revision_required", "returned"]);
 
   if (error) return { error: error.message };
   revalidateAll();

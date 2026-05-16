@@ -12,7 +12,7 @@ interface PersonnelStoreState {
   setSearchQuery: (query: string) => void;
   initRecords: (records: PersonnelRecord[]) => void;
   optimisticallyApprove: (assessmentId: string) => void;
-  optimisticallyReject: (assessmentId: string, reason: string) => void;
+  optimisticallyReturn: (assessmentId: string, reason: string) => void;
 }
 
 export const usePersonnelStore = create<PersonnelStoreState>((set) => ({
@@ -38,17 +38,17 @@ export const usePersonnelStore = create<PersonnelStoreState>((set) => ({
       }),
     })),
 
-  optimisticallyReject: (assessmentId, reason) =>
+  optimisticallyReturn: (assessmentId, reason) =>
     set((s) => ({
       records: s.records.map((r) => {
         if (r.assessment?.id !== assessmentId) return r;
         return {
           ...r,
-          status: "rejected" as PersonnelStatus,
+          status: "returned" as PersonnelStatus,
           assessment: r.assessment
             ? {
                 ...r.assessment,
-                status: "rejected" as const,
+                status: "returned" as const,
                 rejection_reason: reason,
                 reviewed_at: new Date().toISOString(),
               }

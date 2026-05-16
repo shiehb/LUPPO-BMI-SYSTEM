@@ -188,18 +188,18 @@ export function assessmentApprovedEmail(d: ApprovedData): { subject: string; htm
   };
 }
 
-// ─── Template: Assessment Rejected ────────────────────────────────────────────
+// ─── Template: Assessment Returned ────────────────────────────────────────────
 
-export interface RejectedData {
+export interface ReturnedData {
   officerName: string;
   badgeNumber: string;
   rank: string | null;
   month: string;
-  rejectionReason: string;
+  returnReason: string;
   appUrl: string;
 }
 
-export function assessmentRejectedEmail(d: RejectedData): { subject: string; html: string } {
+export function assessmentReturnedEmail(d: ReturnedData): { subject: string; html: string } {
   const displayName = `${d.rank ? d.rank + " " : ""}${d.officerName}`;
   const monthLabel = formatMonth(d.month);
 
@@ -220,9 +220,9 @@ export function assessmentRejectedEmail(d: RejectedData): { subject: string; htm
     <!-- Reason card -->
     <div style="background:#fef2f2;border-left:4px solid #ef4444;border-radius:0 8px 8px 0;padding:14px 18px;margin:20px 0;">
       <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#b91c1c;
-                text-transform:uppercase;letter-spacing:.5px;">Reason for rejection</p>
+                text-transform:uppercase;letter-spacing:.5px;">Reason for return</p>
       <p style="margin:0;font-size:14px;color:#374151;line-height:1.5;">
-        ${d.rejectionReason}
+        ${d.returnReason}
       </p>
     </div>
 
@@ -233,7 +233,7 @@ export function assessmentRejectedEmail(d: RejectedData): { subject: string; htm
     ${btn(d.appUrl + "/user/assessment", "Revise & Resubmit", "#dc2626")}
 
     <p style="margin-top:20px;font-size:13px;color:#9ca3af;">
-      If you believe this rejection is an error, please contact your unit administrator.
+      If you believe this was returned in error, please contact your unit administrator.
     </p>
   `);
 

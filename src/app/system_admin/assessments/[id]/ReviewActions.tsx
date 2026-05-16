@@ -17,6 +17,7 @@ interface ReviewActionsProps {
 export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProps) {
   const router = useRouter();
   const [approveOpen, setApproveOpen]     = useState(false);
+  const [returnOpen, setReturnOpen]       = useState(false);
   const [allowEditOpen, setAllowEditOpen] = useState(false);
   const [isApproving, setIsApproving]     = useState(false);
   const [isAllowingEdit, setIsAllowingEdit] = useState(false);
@@ -55,15 +56,12 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
   }
 
   async function handleReturn() {
-    if (!adminRemarks.trim()) {
-      toast.error("Please enter remarks so the officer knows what to fix.");
-      return;
-    }
     setIsReturning(true);
     try {
-      const result = await updateAssessmentStatus(assessmentId, "revision_required", adminRemarks.trim());
+      const result = await updateAssessmentStatus(assessmentId, "returned", adminRemarks.trim());
       if (result.error) { toast.error(result.error); return; }
-      toast.success("Assessment returned for revision.");
+      toast.success("Assessment returned for correction.");
+      setReturnOpen(false);
       router.push("/system_admin/assessments");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to return assessment.");
@@ -76,14 +74,15 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
     <div className="space-y-3">
       {/* Edit request alert — shown only when officer has requested to edit */}
       {editRequested && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2.5">
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 flex items-center justify-between gap-3">
           <p className="text-xs font-semibold text-amber-800 flex items-center gap-1.5">
             <FilePen className="size-3.5 shrink-0" />
             Officer requested to edit this submission.
           </p>
           <Button
+            size="sm"
             variant="outline"
-            className="w-full border-amber-400/60 text-amber-700 hover:bg-amber-100"
+            className="shrink-0 border-amber-400/60 text-amber-700 hover:bg-amber-100"
             onClick={() => setAllowEditOpen(true)}
           >
             Allow Edit
@@ -91,55 +90,64 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
         </div>
       )}
 
-      <Button
-        className="w-full bg-green-600 hover:bg-green-700"
-        onClick={() => setApproveOpen(true)}
-      >
-        <CheckCircle2 className="mr-2 size-4" />
-        Approve
-      </Button>
-
-      {!showReturnForm ? (
-        <Button
-          variant="outline"
-          className="w-full border-amber-400/50 text-amber-700 hover:bg-amber-50"
-          onClick={() => setShowReturnForm(true)}
-        >
-          <RotateCcw className="mr-2 size-4" />
-          Return for Revision
-        </Button>
-      ) : (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
-          <p className="text-sm font-medium text-amber-800">Admin Remarks *</p>
+      {/* Return reason form — expands above the action bar */}
+      {showReturnForm && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 space-y-3">
+          <p className="text-sm font-medium text-red-800">Reason for Return *</p>
           <Textarea
             value={adminRemarks}
             onChange={(e) => setAdminRemarks(e.target.value)}
             placeholder="Describe what the officer needs to correct before resubmitting…"
             rows={3}
           />
-          <div className="flex gap-2">
+        </div>
+      )}
+
+      {/* Bottom action bar — horizontal, mirrors user form's action row */}
+      <div className="flex items-center justify-end gap-3">
+        {!showReturnForm ? (
+          <Button
+            variant="outline"
+            className="border-red-300 text-red-700 hover:bg-red-50"
+            onClick={() => setShowReturnForm(true)}
+          >
+            <RotateCcw className="mr-2 size-4" />
+            Return for Correction
+          </Button>
+        ) : (
+          <>
             <Button
-              variant="default"
-              className="flex-1 bg-amber-600 hover:bg-amber-700"
-              disabled={isReturning || !adminRemarks.trim()}
-              onClick={handleReturn}
-            >
-              {isReturning ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Return for Revision"
-              )}
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1"
+              variant="ghost"
               onClick={() => { setShowReturnForm(false); setAdminRemarks(""); }}
             >
               Cancel
             </Button>
-          </div>
-        </div>
-      )}
+            <Button
+              className="bg-red-600 hover:bg-red-700"
+              disabled={!adminRemarks.trim()}
+              onClick={() => {
+                if (!adminRemarks.trim()) {
+                  toast.error("Please enter a reason so the officer knows what to fix.");
+                  return;
+                }
+                setReturnOpen(true);
+              }}
+            >
+              Return for Correction
+            </Button>
+          </>
+        )}
+
+        {!showReturnForm && (
+          <Button
+            className="bg-green-600 hover:bg-green-700"
+            onClick={() => setApproveOpen(true)}
+          >
+            <CheckCircle2 className="mr-2 size-4" />
+            Approve
+          </Button>
+        )}
+      </div>
 
       <ConfirmationDialog
         open={approveOpen}
@@ -149,6 +157,17 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
         confirmLabel="Approve"
         isPending={isApproving}
         onConfirm={handleApprove}
+      />
+
+      <ConfirmationDialog
+        open={returnOpen}
+        onOpenChange={setReturnOpen}
+        title="Return for Correction?"
+        description="The officer will be notified and asked to revise their submission based on your reason."
+        confirmLabel="Confirm Return"
+        variant="destructive"
+        isPending={isReturning}
+        onConfirm={handleReturn}
       />
 
       <ConfirmationDialog

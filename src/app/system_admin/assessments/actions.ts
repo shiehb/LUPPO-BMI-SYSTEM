@@ -12,7 +12,7 @@ function getAdminClient() {
 
 export async function updateAssessmentStatus(
   id: string,
-  status: "approved" | "revision_required",
+  status: "approved" | "revision_required" | "returned",
   adminRemarks?: string
 ): Promise<{ error?: string }> {
   const session = await createClient();

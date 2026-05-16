@@ -8,7 +8,7 @@ import { sendEmail } from "@/lib/email/resend";
 import {
   bmiReminderEmail,
   assessmentApprovedEmail,
-  assessmentRejectedEmail,
+  assessmentReturnedEmail,
 } from "@/lib/email/templates";
 
 function getAdminClient() {
@@ -75,7 +75,7 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
       const s = assessment.status;
       if (s === "pending_approval") status = "pending_approval";
       else if (s === "approved") status = "approved";
-      else if (s === "rejected") status = "rejected";
+      else if (s === "returned") status = "returned";
       // draft → not_started from admin perspective
     }
 
@@ -85,7 +85,7 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
 
 export async function updateAssessmentStatus(
   id: string,
-  status: "approved" | "rejected",
+  status: "approved" | "returned",
   rejectionReason?: string
 ): Promise<{ error?: string }> {
   const session = await createClient();
@@ -146,12 +146,12 @@ export async function updateAssessmentStatus(
         });
         await sendEmail({ to: profile.email, subject, html });
       } else {
-        const { subject, html } = assessmentRejectedEmail({
+        const { subject, html } = assessmentReturnedEmail({
           officerName: profile.full_name,
           badgeNumber: profile.badge_number,
           rank: profile.rank ?? null,
           month,
-          rejectionReason: rejectionReason ?? "No reason provided.",
+          returnReason: rejectionReason ?? "No reason provided.",
           appUrl: base,
         });
         await sendEmail({ to: profile.email, subject, html });

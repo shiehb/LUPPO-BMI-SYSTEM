@@ -48,7 +48,7 @@ import {
 import { usePersonnelStore } from "@/store/personnelStore";
 import { filterPersonnelRecords } from "@/lib/utils/filter";
 import { updateAssessmentStatus, notifyPersonnel } from "./actions";
-import { RejectionDialog } from "./RejectionDialog";
+import { ReturnDialog } from "./ReturnDialog";
 import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -65,8 +65,8 @@ const STATUS_CONFIG: Record<
     label: "Pending",
     className: "bg-amber-100 text-amber-800 border-amber-200",
   },
-  rejected: {
-    label: "Rejected",
+  returned: {
+    label: "Returned",
     className: "bg-red-100 text-red-800 border-red-200",
   },
   revision_required: {
@@ -144,14 +144,14 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
   { value: "approved", label: "Approved" },
   { value: "pending_approval", label: "Pending" },
-  { value: "rejected", label: "Rejected" },
+  { value: "returned", label: "Returned" },
   { value: "not_started", label: "Not Started" },
 ];
 
 // ─── Action cell ─────────────────────────────────────────────────────────────
 
 function ActionCell({ row, month }: { row: PersonnelRecord; month: string }) {
-  const [rejectOpen, setRejectOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const optimisticallyApprove = usePersonnelStore((s) => s.optimisticallyApprove);
 
@@ -212,16 +212,16 @@ function ActionCell({ row, month }: { row: PersonnelRecord; month: string }) {
           variant="outline"
           className="gap-1 text-xs text-red-700 border-red-300 hover:bg-red-50"
           disabled={isPending}
-          onClick={() => setRejectOpen(true)}
+          onClick={() => setReturnOpen(true)}
         >
           <X className="size-3" />
-          Reject
+          Return to User
         </Button>
-        <RejectionDialog
+        <ReturnDialog
           assessmentId={row.assessment.id}
           officerName={row.profile.full_name}
-          open={rejectOpen}
-          onOpenChange={setRejectOpen}
+          open={returnOpen}
+          onOpenChange={setReturnOpen}
         />
       </div>
     );

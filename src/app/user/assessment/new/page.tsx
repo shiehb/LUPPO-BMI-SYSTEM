@@ -56,7 +56,7 @@ export default async function NewAssessmentPage({
         .from("bmi_assessments")
         .select("*")
         .eq("user_id", user.id)
-        .in("status", ["draft", "pending_approval", "revision_required"])
+        .in("status", ["draft", "pending_approval", "revision_required", "returned"])
         .order("updated_at", { ascending: false })
         .maybeSingle();
 
@@ -81,9 +81,9 @@ export default async function NewAssessmentPage({
     );
   }
 
-  // Draft or revision_required + not in edit mode → show review step
+  // Draft, revision_required, or returned + not in edit mode → show review step
   if (
-    (assessment?.status === "draft" || assessment?.status === "revision_required") &&
+    (assessment?.status === "draft" || assessment?.status === "revision_required" || assessment?.status === "returned") &&
     edit !== "1"
   ) {
     return (
@@ -102,7 +102,7 @@ export default async function NewAssessmentPage({
         profile={profile}
         age={age}
         initialData={
-          assessment?.status === "draft" || assessment?.status === "revision_required"
+          assessment?.status === "draft" || assessment?.status === "revision_required" || assessment?.status === "returned"
             ? assessment
             : null
         }
