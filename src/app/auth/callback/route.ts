@@ -8,7 +8,14 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      // Token expired or already used — redirect to login with a safe message
+      const url = new URL("/login", origin);
+      url.searchParams.set("error", "reset_link_expired");
+      return NextResponse.redirect(url.toString());
+    }
   }
 
   if (type === "recovery") {

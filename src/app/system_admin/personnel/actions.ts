@@ -1,8 +1,13 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { requireAdmin, getAdminClient } from "@/lib/auth/guards";
+import {
+  PersonnelUpdateStatusSchema,
+  NotifyPersonnelSchema,
+} from "@/lib/validation/schemas";
+import { withActionGuard } from "@/lib/errors";
+import { audit, logger } from "@/lib/logger";
 import type { PersonnelRecord, PersonnelStatus, Profile, Assessment } from "@/lib/types";
 import { sendEmail } from "@/lib/email/resend";
 import {
@@ -11,34 +16,27 @@ import {
   assessmentReturnedEmail,
 } from "@/lib/email/templates";
 
-function getAdminClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY is not configured.");
-  return createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey);
-}
-
 function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
 
-/** Returns the last calendar day of a YYYY-MM month as a YYYY-MM-DD string. */
 function lastDayOfMonth(month: string): string {
   const [y, m] = month.split("-").map(Number);
   return new Date(y, m, 0).toISOString().split("T")[0];
 }
 
-/** Derives "YYYY-MM" from a "YYYY-MM-DD" date string. */
 function toYearMonth(dateTaken: string): string {
   return dateTaken.slice(0, 7);
 }
 
 export async function getPersonnelRecords(month: string): Promise<PersonnelRecord[]> {
-  const admin = getAdminClient();
+  await requireAdmin();
 
-  // Date range is more reliable than the generated assessment_month column
-  // and works even before the migration is applied.
+  if (!/^\d{4}-\d{2}$/.test(month)) return [];
+
+  const admin     = getAdminClient();
   const startDate = `${month}-01`;
-  const endDate = lastDayOfMonth(month);
+  const endDate   = lastDayOfMonth(month);
 
   const [{ data: profiles, error: profilesError }, { data: assessments }] =
     await Promise.all([
@@ -48,9 +46,7 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
           "id, badge_number, full_name, first_name, last_name, middle_name, qualifier, rank, unit_station, gender, birthdate, email, role, archived_at, created_at, updated_at"
         )
         .is("archived_at", null)
-        // No role filter — all personnel (user / admin / system_admin) need BMI assessments
         .order("full_name", { ascending: true }),
-
       admin
         .from("bmi_assessments")
         .select("*")
@@ -58,25 +54,23 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
         .lte("date_taken", endDate),
     ]);
 
-  if (profilesError) {
-    console.error("[getPersonnelRecords] profiles error:", profilesError.message);
-  }
+  if (profilesError)
+    logger.error("action", "getPersonnelRecords failed", { error: profilesError.message, month });
 
   const assessmentMap = new Map<string, Assessment>(
     (assessments ?? []).map((a) => [a.user_id, a as Assessment])
   );
 
   return (profiles ?? []).map((p) => {
-    const profile = p as Profile;
+    const profile    = p as Profile;
     const assessment = assessmentMap.get(p.id) ?? null;
 
     let status: PersonnelStatus = "not_started";
     if (assessment) {
       const s = assessment.status;
       if (s === "pending_approval") status = "pending_approval";
-      else if (s === "approved") status = "approved";
-      else if (s === "returned") status = "returned";
-      // draft → not_started from admin perspective
+      else if (s === "approved")    status = "approved";
+      else if (s === "returned")    status = "returned";
     }
 
     return { profile, assessment, status };
@@ -84,119 +78,118 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
 }
 
 export async function updateAssessmentStatus(
-  id: string,
-  status: "approved" | "returned",
+  id:               string,
+  status:           "approved" | "returned",
   rejectionReason?: string
 ): Promise<{ error?: string }> {
-  const session = await createClient();
-  const {
-    data: { user },
-  } = await session.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  return withActionGuard(async () => {
+    const { userId: actorId } = await requireAdmin();
 
-  let admin;
-  try {
-    admin = getAdminClient();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
+    const parsed = PersonnelUpdateStatusSchema.safeParse({ id, status, rejectionReason });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Fetch the assessment + officer profile before updating so we have email/name for notification
-  const { data: assessment } = await admin
-    .from("bmi_assessments")
-    .select("user_id, date_taken, bmi_score, bmi_pnp_status")
-    .eq("id", id)
-    .single();
+    const admin = getAdminClient();
 
-  const { error } = await admin
-    .from("bmi_assessments")
-    .update({
-      status,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      rejection_reason: rejectionReason ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("status", "pending_approval");
-
-  if (error) return { error: error.message };
-
-  // Send email notification (non-blocking — don't fail the action if email fails)
-  if (assessment) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("email, full_name, badge_number, rank")
-      .eq("id", assessment.user_id)
+    const { data: assessment } = await admin
+      .from("bmi_assessments")
+      .select("user_id, date_taken, bmi_score, bmi_pnp_status")
+      .eq("id", parsed.data.id)
       .single();
 
-    if (profile?.email) {
-      const month = toYearMonth(assessment.date_taken);
-      const base = appUrl();
+    const { error } = await admin
+      .from("bmi_assessments")
+      .update({
+        status:           parsed.data.status,
+        reviewed_by:      actorId,
+        reviewed_at:      new Date().toISOString(),
+        rejection_reason: parsed.data.rejectionReason ?? null,
+        updated_at:       new Date().toISOString(),
+      })
+      .eq("id", parsed.data.id)
+      .eq("status", "pending_approval");
 
-      if (status === "approved") {
-        const { subject, html } = assessmentApprovedEmail({
-          officerName: profile.full_name,
-          badgeNumber: profile.badge_number,
-          rank: profile.rank ?? null,
-          month,
-          bmiScore: assessment.bmi_score,
-          pnpStatus: assessment.bmi_pnp_status,
-          appUrl: base,
-        });
-        await sendEmail({ to: profile.email, subject, html });
-      } else {
-        const { subject, html } = assessmentReturnedEmail({
-          officerName: profile.full_name,
-          badgeNumber: profile.badge_number,
-          rank: profile.rank ?? null,
-          month,
-          returnReason: rejectionReason ?? "No reason provided.",
-          appUrl: base,
-        });
-        await sendEmail({ to: profile.email, subject, html });
+    if (error) throw error;
+
+    audit(
+      status === "approved" ? "assessment.approved" : "assessment.returned",
+      actorId,
+      { assessmentId: id, status }
+    );
+
+    // Non-blocking email notification
+    if (assessment) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("email, full_name, badge_number, rank")
+        .eq("id", assessment.user_id)
+        .single();
+
+      if (profile?.email) {
+        const month = toYearMonth(assessment.date_taken);
+        const base  = appUrl();
+
+        if (status === "approved") {
+          const { subject, html } = assessmentApprovedEmail({
+            officerName: profile.full_name,
+            badgeNumber: profile.badge_number,
+            rank:        profile.rank ?? null,
+            month,
+            bmiScore:    assessment.bmi_score,
+            pnpStatus:   assessment.bmi_pnp_status,
+            appUrl:      base,
+          });
+          await sendEmail({ to: profile.email, subject, html });
+        } else {
+          const { subject, html } = assessmentReturnedEmail({
+            officerName:  profile.full_name,
+            badgeNumber:  profile.badge_number,
+            rank:         profile.rank ?? null,
+            month,
+            returnReason: parsed.data.rejectionReason ?? "No reason provided.",
+            appUrl:       base,
+          });
+          await sendEmail({ to: profile.email, subject, html });
+        }
       }
     }
-  }
 
-  revalidatePath("/system_admin/personnel");
-  revalidatePath("/system_admin/assessments");
-  return {};
+    revalidatePath("/system_admin/personnel");
+    revalidatePath("/system_admin/assessments");
+    return {};
+  });
 }
 
 export async function notifyPersonnel(
   userId: string,
   month?: string
 ): Promise<{ error?: string }> {
-  let admin;
-  try {
-    admin = getAdminClient();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
+  return withActionGuard(async () => {
+    await requireAdmin();
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("email, full_name, badge_number, rank")
-    .eq("id", userId)
-    .single();
+    const parsed = NotifyPersonnelSchema.safeParse({ userId, month });
+    if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  if (!profile?.email) return { error: "Officer email not found." };
+    const admin = getAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("email, full_name, badge_number, rank")
+      .eq("id", parsed.data.userId)
+      .single();
 
-  const targetMonth =
-    month ??
-    (() => {
-      const now = new Date();
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    })();
+    if (!profile?.email) return { error: "Officer email not found." };
 
-  const { subject, html } = bmiReminderEmail({
-    officerName: profile.full_name,
-    badgeNumber: profile.badge_number,
-    rank: profile.rank ?? null,
-    month: targetMonth,
-    appUrl: appUrl(),
+    const targetMonth =
+      parsed.data.month ??
+      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
+    const { subject, html } = bmiReminderEmail({
+      officerName: profile.full_name,
+      badgeNumber: profile.badge_number,
+      rank:        profile.rank ?? null,
+      month:       targetMonth,
+      appUrl:      appUrl(),
+    });
+
+    return sendEmail({ to: profile.email, subject, html });
   });
-
-  return sendEmail({ to: profile.email, subject, html });
 }
