@@ -44,11 +44,7 @@ const schema = z.object({
   email: z
     .string()
     .min(1, "Email is required")
-    .email("Invalid email address")
-    .refine(
-      (v) => v.toLowerCase().endsWith("@luppo.gov.ph"),
-      "Must use a @luppo.gov.ph email address"
-    ),
+    .email("Please enter a valid email address"),
   role: z.enum(["system_admin", "admin", "user"] as const),
 });
 
