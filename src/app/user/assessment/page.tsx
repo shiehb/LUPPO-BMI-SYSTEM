@@ -22,6 +22,8 @@ import { getPNPBadgeClass } from "@/lib/utils/pnp";
 import type { WHOCategory } from "@/lib/utils/bmi";
 import type { PNPClassification } from "@/lib/utils/pnp";
 import { RequestToEditButton } from "./RequestToEditButton";
+import { NewAssessmentButton } from "./NewAssessmentButton";
+
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -135,20 +137,12 @@ export default async function AssessmentPage() {
               Edit & Resubmit
             </Link>
           </Button>
-        ) : hasDraft && draft ? (
-          <Button asChild className="gap-2 shrink-0">
-            <Link href={`/user/assessment/review/${draft.id}`}>
-              <Plus className="size-4" />
-              Continue Draft
-            </Link>
-          </Button>
         ) : (
-          <Button asChild className="gap-2 shrink-0">
-            <Link href="/user/assessment/add">
-              <Plus className="size-4" />
-              New Assessment
-            </Link>
-          </Button>
+          <NewAssessmentButton
+            userId={user.id}
+            hasDraft={hasDraft}
+            draftId={draft?.id}
+          />
         )}
       </div>
 

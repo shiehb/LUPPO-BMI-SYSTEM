@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getPersonnelRecords } from "../personnel/actions";
 import { BmiResultsTable } from "./BmiResultsTable";
 import { QuickStats } from "../personnel/QuickStats";
+import { AssessmentWindowControl } from "./AssessmentWindowControl";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function currentMonth() {
@@ -20,11 +21,15 @@ export default async function BmiResultsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">BMI Results</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          BMI assessment compliance overview and review for all active personnel.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-100">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">BMI Results</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            BMI assessment compliance overview and review for all active personnel.
+          </p>
+        </div>
+
+        <AssessmentWindowControl />
       </div>
 
       {/* Metric cards — reads from Zustand store hydrated by BmiResultsTable below */}

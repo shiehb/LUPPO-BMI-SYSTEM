@@ -11,6 +11,10 @@ import {
 } from "@/lib/bmi";
 import { getPNPClassification, generateRemarks } from "@/lib/utils/pnp";
 import { getBodyFrame } from "@/lib/utils/wrist";
+import {
+  checkAssessmentWindowOpen,
+  checkMonthlyAssessmentExists,
+} from "@/app/system_admin/assessments/assessment-window-actions";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -72,6 +76,26 @@ export async function saveDraft(
 
   // ── Server-side strict validation (submit intent only) ──────────────────────
   if (payload.intent === "submit") {
+    // Check assessment window is open
+    const windowCheck = await checkAssessmentWindowOpen();
+    if (!windowCheck.isOpen) {
+      return { error: windowCheck.message || "Assessment window is currently closed." };
+    }
+
+    // Check for existing assessment in current month (only for new drafts, not edits)
+    if (!payload.assessmentId) {
+      const monthlyCheck = await checkMonthlyAssessmentExists(user.id);
+      if (monthlyCheck.hasExisting) {
+        const currentMonth = new Date().toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+        return {
+          error: `You have already submitted an assessment for ${currentMonth}. Only one assessment per month is allowed.`,
+        };
+      }
+    }
+
     const missing: string[] = [];
     if (!payload.weight)        missing.push("weight");
     if (!payload.height)        missing.push("height");
