@@ -254,7 +254,10 @@ export default async function AssessmentReviewPage({
             </CardHeader>
             <CardContent>
               {isPending ? (
-                <ReviewActions assessmentId={assessment.id} />
+                <ReviewActions
+                  assessmentId={assessment.id}
+                  editRequested={assessment.edit_requested ?? false}
+                />
               ) : (
                 <div className="space-y-2 text-sm">
                   <p className="text-muted-foreground">

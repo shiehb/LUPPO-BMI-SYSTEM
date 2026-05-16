@@ -86,9 +86,17 @@ CREATE TABLE bmi_assessments (
   reviewed_by       UUID        REFERENCES profiles(id) ON DELETE SET NULL,
   reviewed_at       TIMESTAMPTZ,
   rejection_reason  TEXT,
+  admin_remarks     TEXT,
+  edit_requested    BOOLEAN     NOT NULL DEFAULT FALSE,
+  edit_requested_at TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Run this migration in Supabase if the table already exists:
+-- ALTER TABLE bmi_assessments ADD COLUMN admin_remarks TEXT;
+-- ALTER TABLE bmi_assessments ADD COLUMN edit_requested BOOLEAN NOT NULL DEFAULT FALSE;
+-- ALTER TABLE bmi_assessments ADD COLUMN edit_requested_at TIMESTAMPTZ;
 
 
 -- ------------------------------------------------------------

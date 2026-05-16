@@ -40,3 +40,35 @@ export async function updateAssessmentStatus(
   revalidatePath("/system_admin/assessments");
   return {};
 }
+
+export async function allowEditRequest(
+  id: string
+): Promise<{ error?: string }> {
+  const session = await createClient();
+  const { data: { user } } = await session.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  let admin;
+  try { admin = getAdminClient(); } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("bmi_assessments")
+    .update({
+      status:            "draft",
+      edit_requested:    false,
+      edit_requested_at: null,
+      submitted_at:      null,
+      certified_at:      null,
+      updated_at:        now,
+    })
+    .eq("id", id)
+    .eq("status", "pending_approval")
+    .eq("edit_requested", true);
+
+  if (error) return { error: error.message };
+  revalidatePath("/system_admin/assessments");
+  return {};
+}

@@ -21,7 +21,7 @@ import { getWHOBadgeClass } from "@/lib/utils/bmi";
 import { getPNPBadgeClass } from "@/lib/utils/pnp";
 import type { WHOCategory } from "@/lib/utils/bmi";
 import type { PNPClassification } from "@/lib/utils/pnp";
-import { RecallButton } from "./RecallButton";
+import { RequestToEditButton } from "./RequestToEditButton";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -143,7 +143,7 @@ export default async function AssessmentPage() {
         )}
       </div>
 
-      {/* ── Pending banner with Recall button ── */}
+      {/* ── Pending banner with Request to Edit button ── */}
       {pending && (
         <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <Clock className="mt-0.5 size-4 shrink-0 text-amber-600" />
@@ -152,10 +152,13 @@ export default async function AssessmentPage() {
               Assessment Pending Admin Approval
             </p>
             <p className="mt-0.5 text-xs text-amber-700">
-              Your latest submission is under review. Recall it if you need to make changes before the admin reviews it.
+              Your latest submission is under review. Request to edit if you need to make changes before the admin or system admin reviews it.
             </p>
           </div>
-          <RecallButton assessmentId={pending.id} />
+          <RequestToEditButton
+            assessmentId={pending.id}
+            initialRequested={pending.edit_requested ?? false}
+          />
         </div>
       )}
 

@@ -288,6 +288,34 @@ export async function submitAssessment(
   return {};
 }
 
+export async function requestEdit(
+  id: string
+): Promise<{ error?: string }> {
+  const session = await createClient();
+  const { data: { user } } = await session.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  let admin;
+  try { admin = getAdminClient(); } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { error } = await admin
+    .from("bmi_assessments")
+    .update({
+      edit_requested:    true,
+      edit_requested_at: new Date().toISOString(),
+      updated_at:        new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("status", "pending_approval");
+
+  if (error) return { error: error.message };
+  revalidateAll();
+  return {};
+}
+
 export async function requestRevision(
   id: string
 ): Promise<{ error?: string }> {

@@ -88,11 +88,16 @@ export default async function PendingAssessmentsPage() {
               rows.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col gap-1">
                       <span className="font-medium uppercase text-sm">
                         {row.officer?.rank ? `${row.officer.rank.toUpperCase()} ` : ""}
                         {row.officer?.full_name ?? "—"}
                       </span>
+                      {row.edit_requested && (
+                        <Badge className="w-fit bg-amber-100 text-amber-700 border border-amber-300 text-[10px] font-medium px-1.5 py-0">
+                          Edit Requested
+                        </Badge>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>

@@ -49,6 +49,8 @@ export interface Assessment {
   reviewed_at: string | null;
   rejection_reason: string | null;
   admin_remarks: string | null;
+  edit_requested: boolean;
+  edit_requested_at: string | null;
   created_at: string;
   updated_at: string;
 }
