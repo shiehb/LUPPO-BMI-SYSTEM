@@ -93,7 +93,13 @@ function buildCrumbs(path: string): Crumb[] {
       { label: "Settings",  href: path },
     ]
   }
-
+  // ── System Admin: Reports ──────────────────────────────────────────────────────────────
+  if (path === "/system_admin/reports") {
+    return [
+      { label: "Dashboard", href: ADMIN_HOME },
+      { label: "Reports",   href: path },
+    ]
+  }
   // ── System Admin: Personnel ──────────────────────────────────────────────
   if (path.startsWith("/system_admin/personnel")) {
     return [
@@ -116,7 +122,13 @@ function buildCrumbs(path: string): Crumb[] {
       { label: "My Assessment", href: "/user/assessment" },
     ]
   }
-
+  // ── User: Reports ──────────────────────────────────────────────────────────────────────
+  if (path === "/user/reports") {
+    return [
+      { label: "Dashboard", href: USER_HOME },
+      { label: "Reports",   href: path },
+    ]
+  }
   // ── User: Assessment sub-routes ──────────────────────────────────────────
   if (path === "/user/assessment/add") {
     return [
