@@ -20,7 +20,7 @@ export default function AuthCard({
       {/* Fixed floating header */}
       <header className="fixed top-0 inset-x-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="max-w-md mx-auto flex items-center justify-between gap-2 px-4 py-3">
-          <LogoImage src="/pnp-logo.png" alt="PNP" className="h-10 w-10 md:h-12 md:w-12" />
+          <LogoImage src="/pnp-logo.webp" alt="PNP" className="h-10 w-10 md:h-12 md:w-12" />
 
           <div className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
             <p className="text-[11px] md:text-sm font-bold uppercase tracking-wider md:tracking-widest text-foreground leading-tight">
@@ -31,7 +31,7 @@ export default function AuthCard({
             </p>
           </div>
 
-          <LogoImage src="/pro1-logo.png" alt="PRO 1" className="h-10 w-10 md:h-12 md:w-12" />
+          <LogoImage src="/pro1-logo.webp" alt="PRO 1" className="h-10 w-10 md:h-12 md:w-12" />
         </div>
       </header>
 
