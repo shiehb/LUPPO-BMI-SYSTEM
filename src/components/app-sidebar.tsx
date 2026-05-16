@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   ShieldCheck,
-  LayoutGrid, Users, ClipboardList,
+  Users, ClipboardList,
   ClipboardCheck,
 } from "lucide-react"
 
@@ -26,9 +26,8 @@ const BMI_RESULTS_ITEM   = { title: "BMI Results",   url: "/system_admin/assessm
 
 const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode }[]> = {
   system_admin: [
-    { title: "Overview",        url: "/system_admin",       icon: <LayoutGrid className="size-4" /> },
-    { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
     BMI_RESULTS_ITEM,
+    { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
     MY_ASSESSMENT_ITEM,
   ],
   admin: [
