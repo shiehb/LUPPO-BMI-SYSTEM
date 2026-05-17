@@ -14,8 +14,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
 import { useAssessmentStore, computePreview } from "@/store/assessmentStore";
 import { saveDraft } from "./actions";
+import dynamic from "next/dynamic";
 import type { Assessment, Profile } from "@/lib/types";
-import { PhotoCropper } from "@/components/PhotoCropper";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,13 @@ import {
 } from "@/components/ui/card";
 import { FieldError, FieldGroup } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
+
+// Dynamic import keeps cropperjs out of the SSR bundle entirely.
+// ssr: false prevents window/document access during server rendering.
+const PhotoCropper = dynamic(
+  () => import("@/components/PhotoCropper").then((m) => ({ default: m.PhotoCropper })),
+  { ssr: false }
+);
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -144,29 +151,31 @@ export function AssessmentInput({
 
   function handlePhotoSelect(view: PhotoView, file: File | undefined) {
     if (!file) return;
-    setCropTarget({ view, srcUrl: URL.createObjectURL(file) });
+    // FileReader produces a stable data URL that Cropper.js can always load,
+    // unlike object URLs which can fail inside certain browser security contexts.
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result;
+      if (typeof dataUrl === "string") setCropTarget({ view, srcUrl: dataUrl });
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleCropConfirm(file: File, preview: string) {
     if (!cropTarget) return;
-    const { view, srcUrl } = cropTarget;
-    URL.revokeObjectURL(srcUrl);
-    setPhotos((prev) => {
-      if (prev[view]) URL.revokeObjectURL(prev[view]!.preview);
-      return { ...prev, [view]: { file, preview } };
-    });
+    // Both srcUrl (data URL from FileReader) and preview (data URL from canvas)
+    // are data URLs — no object URL revocation needed.
+    setPhotos((prev) => ({ ...prev, [cropTarget.view]: { file, preview } }));
     setCropTarget(null);
   }
 
   function handleCropCancel() {
-    if (cropTarget) URL.revokeObjectURL(cropTarget.srcUrl);
     setCropTarget(null);
   }
 
   function removePhoto(view: PhotoView) {
     setPhotos((prev) => {
       const next = { ...prev };
-      if (next[view]) URL.revokeObjectURL(next[view]!.preview);
       delete next[view];
       return next;
     });

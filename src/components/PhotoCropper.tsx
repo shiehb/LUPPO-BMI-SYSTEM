@@ -1,26 +1,27 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Cropper, { type ReactCropperElement } from "react-cropper";
 import "cropperjs/dist/cropper.css";
-import { Check, RotateCcw, RotateCw, ZoomIn, ZoomOut, X } from "lucide-react";
+import { Check, Loader2, RotateCcw, RotateCw, ZoomIn, ZoomOut, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ── Layout constants (mirrored from BmiMonitoringFormPrint.tsx — DO NOT EDIT) ─
 const _PAGE_MARGIN  = 36;
 const _USABLE_W     = 841.89 - _PAGE_MARGIN * 2;
 const _PHOTO_COL_W  = _USABLE_W * 0.50;
-const _PHOTO_CELL_W = Math.floor(_PHOTO_COL_W / 3) - 2;
-const _PHOTO_FIT_W  = _PHOTO_CELL_W - 4;          // 122 pt
+const _PHOTO_CELL_W = Math.floor(_PHOTO_COL_W / 3) - 2;  // 126 pt
 const _PHOTO_ROW_H  = 243;
 const _LABEL_H      = 18;
-const _IMG_AREA_H   = _PHOTO_ROW_H - _LABEL_H;    // 225 pt
+const _IMG_AREA_H   = _PHOTO_ROW_H - _LABEL_H;           // 225 pt
 
-export const CROP_ASPECT = _PHOTO_FIT_W / _IMG_AREA_H;                         // ≈ 0.5422
-export const CROP_OUT_W  = 400;
-export const CROP_OUT_H  = Math.round(CROP_OUT_W * _IMG_AREA_H / _PHOTO_FIT_W); // ≈ 738
+export const CROP_W      = _PHOTO_CELL_W;          // 126
+export const CROP_H      = _IMG_AREA_H;             // 225
+export const CROP_ASPECT = CROP_W / CROP_H;         // ≈ 0.56
 
 export interface PhotoCropperProps {
+  /** Data URL produced by FileReader — never a blob/object URL. */
   src:       string;
   title?:    string;
   onConfirm: (file: File, preview: string) => void;
@@ -30,26 +31,56 @@ export interface PhotoCropperProps {
 export function PhotoCropper({ src, title, onConfirm, onCancel }: PhotoCropperProps) {
   const cropperRef = useRef<ReactCropperElement>(null);
 
+  // `ready` becomes true when Cropper.js fires onInitialized.
+  // Buttons are disabled until then so no instance methods are called prematurely.
+  const [ready, setReady] = useState(false);
+
+  // `mounted` gates the createPortal call.
+  // useEffect only runs client-side, so document.body is always available by
+  // the time we try to portal into it.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // Reset ready state whenever the source image changes
+  // (key={src} on <Cropper> handles re-mount, but we also reset the flag).
+  useEffect(() => { setReady(false); }, [src]);
+
   function handleConfirm() {
     const cropper = cropperRef.current?.cropper;
     if (!cropper) return;
-    const canvas  = cropper.getCroppedCanvas({ width: CROP_OUT_W, height: CROP_OUT_H });
-    const preview = canvas.toDataURL("image/jpeg", 0.88);
+
+    const canvas = cropper.getCroppedCanvas({ width: CROP_W, height: CROP_H });
+    if (!canvas) return;
+
+    const preview = canvas.toDataURL("image/jpeg", 0.92);
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
         onConfirm(new File([blob], "photo.jpg", { type: "image/jpeg" }), preview);
       },
       "image/jpeg",
-      0.88
+      0.92
     );
   }
 
-  return (
+  // Guard every instance method — cropper may still be null if called too early.
+  function rotate(deg: number) {
+    cropperRef.current?.cropper?.rotate(deg);
+  }
+  function zoom(ratio: number) {
+    cropperRef.current?.cropper?.zoom(ratio);
+  }
+
+  if (!mounted) return null;
+
+  // createPortal renders the overlay as a direct child of document.body,
+  // keeping it out of the form's DOM subtree and avoiding stacking-context /
+  // removeChild hydration issues entirely.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 shrink-0 bg-black/80">
         <span className="text-sm font-medium text-white">
           {title ?? "Crop Photo"}
         </span>
@@ -63,9 +94,19 @@ export function PhotoCropper({ src, title, onConfirm, onCancel }: PhotoCropperPr
         </button>
       </div>
 
-      {/* ── Cropper — fills remaining height ── */}
-      <div className="flex-1 min-h-0">
+      {/* ── Cropper fills remaining height ── */}
+      <div className="relative flex-1 min-h-0">
+        {!ready && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black">
+            <Loader2 className="size-6 animate-spin text-white/50" />
+          </div>
+        )}
+        {/*
+          key={src} forces a full Cropper remount whenever the source changes,
+          so the instance is never reused against a stale image element.
+        */}
         <Cropper
+          key={src}
           ref={cropperRef}
           src={src}
           aspectRatio={CROP_ASPECT}
@@ -74,50 +115,55 @@ export function PhotoCropper({ src, title, onConfirm, onCancel }: PhotoCropperPr
           autoCropArea={0.9}
           responsive
           restore={false}
+          onInitialized={() => setReady(true)}
           style={{ width: "100%", height: "100%" }}
         />
       </div>
 
       {/* ── Bottom toolbar ── */}
       <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-4 bg-black/80">
-        {/* Transform tools */}
         <div className="flex gap-2">
           <Button
             type="button" size="icon" variant="secondary"
-            title="Rotate left 90°"
-            onClick={() => cropperRef.current?.cropper.rotate(-90)}
+            title="Rotate left 90°" disabled={!ready}
+            onClick={() => rotate(-90)}
           >
             <RotateCcw className="size-4" />
           </Button>
           <Button
             type="button" size="icon" variant="secondary"
-            title="Rotate right 90°"
-            onClick={() => cropperRef.current?.cropper.rotate(90)}
+            title="Rotate right 90°" disabled={!ready}
+            onClick={() => rotate(90)}
           >
             <RotateCw className="size-4" />
           </Button>
           <Button
             type="button" size="icon" variant="secondary"
-            title="Zoom in"
-            onClick={() => cropperRef.current?.cropper.zoom(0.1)}
+            title="Zoom in" disabled={!ready}
+            onClick={() => zoom(0.1)}
           >
             <ZoomIn className="size-4" />
           </Button>
           <Button
             type="button" size="icon" variant="secondary"
-            title="Zoom out"
-            onClick={() => cropperRef.current?.cropper.zoom(-0.1)}
+            title="Zoom out" disabled={!ready}
+            onClick={() => zoom(-0.1)}
           >
             <ZoomOut className="size-4" />
           </Button>
         </div>
 
-        {/* Confirm */}
-        <Button type="button" onClick={handleConfirm} className="gap-1.5">
+        <Button
+          type="button"
+          disabled={!ready}
+          onClick={handleConfirm}
+          className="gap-1.5"
+        >
           <Check className="size-4" />
           Use Photo
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
