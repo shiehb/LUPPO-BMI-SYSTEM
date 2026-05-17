@@ -1,3 +1,14 @@
+// ─── Security helpers ─────────────────────────────────────────────────────────
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // ─── Shared layout ────────────────────────────────────────────────────────────
 
 function layout(content: string): string {
@@ -79,8 +90,9 @@ export interface ReminderData {
 }
 
 export function bmiReminderEmail(d: ReminderData): { subject: string; html: string } {
-  const displayName = `${d.rank ? d.rank + " " : ""}${d.officerName}`;
-  const monthLabel = formatMonth(d.month);
+  const displayName = escapeHtml(`${d.rank ? d.rank + " " : ""}${d.officerName}`);
+  const badgeNumber = escapeHtml(d.badgeNumber);
+  const monthLabel  = formatMonth(d.month);
 
   const html = layout(/* html */ `
     <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">BMI Assessment Reminder</h2>
@@ -90,7 +102,7 @@ export function bmiReminderEmail(d: ReminderData): { subject: string; html: stri
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
       Dear <strong>${displayName}</strong>
-      <span style="color:#6b7280;font-size:13px;"> (Badge #${d.badgeNumber})</span>,
+      <span style="color:#6b7280;font-size:13px;"> (Badge #${badgeNumber})</span>,
     </p>
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
@@ -135,8 +147,10 @@ export interface ApprovedData {
 }
 
 export function assessmentApprovedEmail(d: ApprovedData): { subject: string; html: string } {
-  const displayName = `${d.rank ? d.rank + " " : ""}${d.officerName}`;
-  const monthLabel = formatMonth(d.month);
+  const displayName = escapeHtml(`${d.rank ? d.rank + " " : ""}${d.officerName}`);
+  const badgeNumber = escapeHtml(d.badgeNumber);
+  const pnpStatus   = escapeHtml(d.pnpStatus);
+  const monthLabel  = formatMonth(d.month);
 
   const html = layout(/* html */ `
     <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">Assessment Approved ✅</h2>
@@ -144,7 +158,7 @@ export function assessmentApprovedEmail(d: ApprovedData): { subject: string; htm
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
       Dear <strong>${displayName}</strong>
-      <span style="color:#6b7280;font-size:13px;"> (Badge #${d.badgeNumber})</span>,
+      <span style="color:#6b7280;font-size:13px;"> (Badge #${badgeNumber})</span>,
     </p>
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
@@ -171,7 +185,7 @@ export function assessmentApprovedEmail(d: ApprovedData): { subject: string; htm
             <tr>
               <td style="font-size:13px;color:#374151;padding:4px 0;">PNP Classification</td>
               <td style="font-size:13px;font-weight:600;color:#15803d;text-align:right;">
-                ${d.pnpStatus}
+                ${pnpStatus}
               </td>
             </tr>
           </table>
@@ -200,8 +214,10 @@ export interface ReturnedData {
 }
 
 export function assessmentReturnedEmail(d: ReturnedData): { subject: string; html: string } {
-  const displayName = `${d.rank ? d.rank + " " : ""}${d.officerName}`;
-  const monthLabel = formatMonth(d.month);
+  const displayName  = escapeHtml(`${d.rank ? d.rank + " " : ""}${d.officerName}`);
+  const badgeNumber  = escapeHtml(d.badgeNumber);
+  const returnReason = escapeHtml(d.returnReason);
+  const monthLabel   = formatMonth(d.month);
 
   const html = layout(/* html */ `
     <h2 style="margin:0 0 8px;font-size:20px;color:#111827;">Assessment Requires Revision</h2>
@@ -209,7 +225,7 @@ export function assessmentReturnedEmail(d: ReturnedData): { subject: string; htm
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
       Dear <strong>${displayName}</strong>
-      <span style="color:#6b7280;font-size:13px;"> (Badge #${d.badgeNumber})</span>,
+      <span style="color:#6b7280;font-size:13px;"> (Badge #${badgeNumber})</span>,
     </p>
 
     <p style="font-size:15px;color:#374151;line-height:1.6;">
@@ -222,7 +238,7 @@ export function assessmentReturnedEmail(d: ReturnedData): { subject: string; htm
       <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#b91c1c;
                 text-transform:uppercase;letter-spacing:.5px;">Reason for return</p>
       <p style="margin:0;font-size:14px;color:#374151;line-height:1.5;">
-        ${d.returnReason}
+        ${returnReason}
       </p>
     </div>
 

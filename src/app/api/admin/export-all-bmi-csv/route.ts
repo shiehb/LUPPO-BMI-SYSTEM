@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminClient } from "@/lib/auth/guards";
+import { rateLimit } from "@/lib/rate-limit";
 import {
   sortByRank,
   CSV_COLUMNS,
@@ -123,6 +124,15 @@ const MONTH_LABEL = [
 /* ── ROUTE HANDLER ────────────────────────────────────────────────────────── */
 
 export async function GET(request: NextRequest) {
+
+  /* ── 0. Rate limit: 20 exports per minute per IP ────────────────────── */
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!rateLimit(`export:${ip}`, { limit: 20, windowMs: 60_000 })) {
+    return NextResponse.json(
+      { error: "Too many requests. Please wait before trying again." },
+      { status: 429 }
+    );
+  }
 
   /* ── 1. Verify Supabase session ─────────────────────────────────────── */
   const supabase = await createClient();
