@@ -38,7 +38,7 @@ export async function updateAssessmentStatus(
       { assessmentId: id, status }
     );
 
-    revalidatePath("/system_admin/assessments");
+    revalidatePath("/dashboard/personnel");
     return {};
   });
 }
@@ -70,7 +70,7 @@ export async function allowEditRequest(id: string): Promise<{ error?: string }> 
     if (error) throw error;
 
     audit("assessment.returned", actorId, { assessmentId: id, reason: "edit_request_allowed" });
-    revalidatePath("/system_admin/assessments");
+    revalidatePath("/dashboard/personnel");
     return {};
   });
 }

@@ -75,7 +75,7 @@ function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => router.push(`/system_admin/users/edit/${profile.id}`)}>
+          <DropdownMenuItem onSelect={() => router.push(`/dashboard/sys-admin/users/${profile.id}/edit`)}>
             Edit
           </DropdownMenuItem>
           <DropdownMenuSeparator />

@@ -125,7 +125,7 @@ export function EditUserForm({ profile }: { profile: Profile }) {
     if (result.error) { toast.error(result.error); return; }
     toast.success("User updated successfully.");
     setConfirmOpen(false);
-    router.push("/system_admin/users");
+    router.push("/dashboard/sys-admin/users");
   }
 
   return (
@@ -133,7 +133,7 @@ export function EditUserForm({ profile }: { profile: Profile }) {
 
       {/* Back link */}
       <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
-        <Link href="/system_admin/users">
+        <Link href="/dashboard/sys-admin/users">
           <ArrowLeft className="size-4 mr-1" />
           Back to Users
         </Link>
@@ -323,7 +323,7 @@ export function EditUserForm({ profile }: { profile: Profile }) {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => router.push("/system_admin/users")}
+            onClick={() => router.push("/dashboard/sys-admin/users")}
             disabled={isSubmitting}
           >
             Cancel

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, LogOut, ChevronLeft,
+  Users, LogOut, ChevronLeft,
   ChevronRight, LayoutGrid, Menu, ShieldCheck, ClipboardCheck,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -20,19 +20,19 @@ interface NavItem {
   icon: React.ReactNode;
 }
 
-const MY_ASSESSMENT: NavItem = { label: "My Assessment", href: "/user/assessment", icon: <ClipboardCheck size={18} /> };
+const MY_ASSESSMENT: NavItem = { label: "My Profile", href: "/dashboard/my-profile", icon: <ClipboardCheck size={18} /> };
 
 const NAV_ITEMS: Record<Role, NavItem[]> = {
   system_admin: [
-    { label: "Overview",        href: "/system_admin",       icon: <LayoutGrid size={18} /> },
-    { label: "User Management", href: "/system_admin/users", icon: <Users size={18} /> },
+    { label: "Dashboard",       href: "/dashboard/personnel",         icon: <LayoutGrid size={18} /> },
+    { label: "User Management", href: "/dashboard/sys-admin/users",   icon: <Users size={18} /> },
     MY_ASSESSMENT,
   ],
   admin: [
+    { label: "Dashboard", href: "/dashboard/personnel", icon: <LayoutGrid size={18} /> },
     MY_ASSESSMENT,
   ],
   user: [
-    { label: "My Dashboard", href: "/user", icon: <LayoutDashboard size={18} /> },
     MY_ASSESSMENT,
   ],
 };
@@ -82,7 +82,7 @@ function NavContent({ role, fullName, badgeNumber, collapsed = false }: NavConte
           const active = pathname === href;
           return (
             <Link
-              key={href}
+              key={label}
               href={href}
               title={collapsed ? label : undefined}
               className={cn(

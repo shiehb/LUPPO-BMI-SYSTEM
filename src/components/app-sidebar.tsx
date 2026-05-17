@@ -8,9 +8,10 @@ import {
   ClipboardCheck,
   FileText,
   FileSpreadsheet,
+  Settings2,
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
+import { NavMain, type NavItem } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -21,38 +22,39 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import type { Role } from "@/lib/types"
 
-const ADMIN_DASHBOARD_ITEM = { title: "Dashboard",     url: "/system_admin/assessments", icon: <ClipboardList   className="size-4" /> }
-const MY_ASSESSMENT_ITEM   = { title: "My Assessment", url: "/user/assessment",          icon: <ClipboardCheck  className="size-4" /> }
-const PRINT_ITEM           = { title: "Print",         url: "/print/bmi-form",           icon: <FileText        className="size-4" />, exactMatch: true }
-const ADMIN_EXPORT_ITEM    = { title: "Reports",       url: "/user/report/admin-export", icon: <FileSpreadsheet className="size-4" /> }
+// ── Personal items — visible to every role ────────────────────────────────────
 
-const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode; exactMatch?: boolean }[]> = {
-  system_admin: [
-    ADMIN_DASHBOARD_ITEM,
-    MY_ASSESSMENT_ITEM,
-    PRINT_ITEM,
-    ADMIN_EXPORT_ITEM,
-    { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
-  ],
-  admin: [
-    ADMIN_DASHBOARD_ITEM,
-    MY_ASSESSMENT_ITEM,
-    PRINT_ITEM,
-  ],
-  user: [
-    MY_ASSESSMENT_ITEM,
-    PRINT_ITEM,
-  ],
+const MY_PROFILE_ITEM: NavItem = { title: "My Profile", url: "/dashboard/my-profile", icon: <ClipboardCheck className="size-4" /> }
+const PRINT_ITEM:      NavItem = { title: "Print",       url: "/dashboard/my-profile/report", icon: <FileText className="size-4" /> }
+
+const PERSONAL_ITEMS: NavItem[] = [MY_PROFILE_ITEM, PRINT_ITEM]
+
+// ── Administration items — role-gated below ───────────────────────────────────
+
+const PERSONNEL_ITEM:  NavItem = { title: "Personnel",         url: "/dashboard/personnel",          icon: <ClipboardList   className="size-4" /> }
+const REPORTS_ITEM:    NavItem = { title: "Reports",           url: "/dashboard/reports/export",     icon: <FileSpreadsheet className="size-4" /> }
+const USERS_ITEM:      NavItem = { title: "User Management",   url: "/dashboard/sys-admin/users",    icon: <Users           className="size-4" /> }
+const SETTINGS_ITEM:   NavItem = { title: "Platform Settings", url: "/dashboard/sys-admin/settings", icon: <Settings2       className="size-4" /> }
+
+const ADMIN_ITEMS: Record<Role, NavItem[]> = {
+  system_admin: [PERSONNEL_ITEM, REPORTS_ITEM, USERS_ITEM, SETTINGS_ITEM],
+  admin:        [PERSONNEL_ITEM],
+  user:         [],
 }
+
+// ── Role subtitle ─────────────────────────────────────────────────────────────
 
 const ROLE_SUBTITLE: Record<Role, string> = {
   system_admin: "System Admin Officer",
   admin:        "Admin Officer",
   user:         "Officer",
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   role: Role
@@ -64,6 +66,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
+  const adminItems = ADMIN_ITEMS[role]
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -83,7 +87,16 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={NAV_ITEMS[role]} />
+        {/* Personal section — always visible */}
+        <NavMain items={PERSONAL_ITEMS} label="Personal" />
+
+        {/* Administration section — system_admin and admin only */}
+        {adminItems.length > 0 && (
+          <>
+            <SidebarSeparator />
+            <NavMain items={adminItems} label="Administration" />
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

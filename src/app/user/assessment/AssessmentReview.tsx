@@ -108,7 +108,7 @@ export function AssessmentReview({
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5"
-          onClick={() => router.push(`/user/assessment/edit/${assessment.id}`)}
+          onClick={() => router.push(`/dashboard/my-profile/${assessment.id}/edit`)}
         >
           <Edit3 className="size-3.5" />
           Edit
@@ -289,7 +289,7 @@ export function AssessmentReview({
         <Button
           variant="outline"
           className="flex-1 sm:flex-none sm:w-auto"
-          onClick={() => router.push("/user/assessment")}
+          onClick={() => router.push("/dashboard/my-profile")}
         >
           Continue Later
         </Button>

@@ -68,7 +68,7 @@ export default function ReportsUI({ records, year, month }: Props) {
   const [onlyWithAssessments, setOnlyWithAssessments] = useState(false);
 
   function navigate(y: number, m: number) {
-    router.push(`/system_admin/reports?year=${y}&month=${m}`);
+    router.push(`/dashboard/sys-admin/reports?year=${y}&month=${m}`);
   }
 
   const filtered = useMemo(() => {

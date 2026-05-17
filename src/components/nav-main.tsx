@@ -17,15 +17,15 @@ export interface NavItem {
   exactMatch?: boolean // when true, only marks active on exact URL (not sub-paths)
 }
 
-export function NavMain({ items }: { items: NavItem[] }) {
+export function NavMain({ items, label = "Navigation" }: { items: NavItem[]; label?: string }) {
   const pathname = usePathname()
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
-          <SidebarMenuItem key={item.url}>
+          <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
               asChild
               isActive={

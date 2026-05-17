@@ -109,7 +109,7 @@ export function bmiReminderEmail(d: ReminderData): { subject: string; html: stri
       Log in to the LUPPO BMI System to enter your measurements:
     </p>
 
-    ${btn(d.appUrl + "/user/assessment/add", "Submit My Assessment")}
+    ${btn(d.appUrl + "/dashboard/my-profile/new", "Submit My Assessment")}
 
     <p style="margin-top:24px;font-size:13px;color:#9ca3af;">
       If you have already submitted your assessment, please disregard this message.
@@ -179,7 +179,7 @@ export function assessmentApprovedEmail(d: ApprovedData): { subject: string; htm
       </tr>
     </table>
 
-    ${btn(d.appUrl + "/user/assessment", "View My Assessment", "#16a34a")}
+    ${btn(d.appUrl + "/dashboard/my-profile", "View My Assessment", "#16a34a")}
   `);
 
   return {
@@ -230,7 +230,7 @@ export function assessmentReturnedEmail(d: ReturnedData): { subject: string; htm
       Please log in, review the reason above, update your measurements, and resubmit.
     </p>
 
-    ${btn(d.appUrl + "/user/assessment", "Revise & Resubmit", "#dc2626")}
+    ${btn(d.appUrl + "/dashboard/my-profile", "Revise & Resubmit", "#dc2626")}
 
     <p style="margin-top:20px;font-size:13px;color:#9ca3af;">
       If you believe this was returned in error, please contact your unit administrator.

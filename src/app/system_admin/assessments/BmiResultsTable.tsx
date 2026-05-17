@@ -150,7 +150,7 @@ function ActionCell({
       <Button
         size="sm"
         className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={() => router.push(`/system_admin/assessments/${row.assessment!.id}`)}
+        onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
       >
         <ClipboardCheck className="size-3" />
         Review Assessment
@@ -164,7 +164,7 @@ function ActionCell({
       size="sm"
       variant="outline"
       className="gap-1.5 text-xs"
-      onClick={() => router.push(`/system_admin/assessments/${row.assessment!.id}`)}
+      onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
     >
       <Eye className="size-3" />
       View Details

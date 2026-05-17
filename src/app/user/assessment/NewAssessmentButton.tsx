@@ -85,7 +85,7 @@ export function NewAssessmentButton({
   if (hasDraft && draftId) {
     return (
       <Button asChild className="gap-2 shrink-0">
-        <Link href={`/user/assessment/review/${draftId}`}>
+        <Link href={`/dashboard/my-profile/${draftId}/review`}>
           <Plus className="size-4" />
           Continue Draft
         </Link>
@@ -119,7 +119,7 @@ export function NewAssessmentButton({
         onConfirm={() => {
           setConfirmOpen(false);
           // Navigate to add page after confirmation
-          window.location.href = "/user/assessment/add";
+          window.location.href = "/dashboard/my-profile/new";
         }}
       />
     </>

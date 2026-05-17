@@ -12,190 +12,124 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-// ── Constants ──────────────────────────────────────────────────────────────────
-
-const ADMIN_HOME = "/system_admin/assessments"
-const USER_HOME  = "/user/assessment"
-
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type Crumb = { label: string; href: string }
+// href is optional — crumbs without one render as plain section labels (no link)
+type Crumb = { label: string; href?: string }
 
-// ── Breadcrumb name map ───────────────────────────────────────────────────────
+// ── ID guard ──────────────────────────────────────────────────────────────────
+// Strips raw UUIDs (v4) and plain integers from visible breadcrumb text so
+// database identifiers never reach the UI.
 
-const breadcrumbNameMap: Record<string, string> = {
-  // ── System Admin ────────────────────────────────────────────────────────
-  "/system_admin":                  "Dashboard",
-  "/system_admin/assessments":      "Dashboard",
-  "/system_admin/reports":          "BMI Reports",
-  "/system_admin/settings":         "Settings",
-  "/system_admin/users":            "User Management",
-  "/system_admin/users/add":        "Add New User",
-  "/system_admin/users/archive":    "Archived Accounts",
-  "/system_admin/personnel":        "Personnel",
-  // ── User ────────────────────────────────────────────────────────────────
-  "/user/assessment":               "My Assessment",
-  "/user/assessment/add":           "Add New",
-  "/user/assessment/new":           "New Assessment",
-  "/user/report":                   "Print",
-  "/user/report/admin-export":      "Generate Report",
-}
+const IS_DYNAMIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^\d+$/i
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const label = (path: string): string => breadcrumbNameMap[path] ?? path
-
-// ── Route resolver ─────────────────────────────────────────────────────────────
+// ── Breadcrumb builder ────────────────────────────────────────────────────────
 
 function buildCrumbs(path: string): Crumb[] {
 
-  // ── System Admin: Dashboard (home / default landing) ────────────────────
-  if (path === "/system_admin" || path === "/system_admin/assessments") {
-    return [
-      { label: label(ADMIN_HOME), href: ADMIN_HOME },
-    ]
+  // Hydration guard — pathname may be empty during the initial SSR pass
+  if (!path) return [{ label: "Dashboard" }]
+
+  // ── /dashboard/my-profile ──────────────────────────────────────────────────
+  //  Display: Dashboard > My Profile
+  //         + New Assessment   when path ends with /new
+  //         + Edit Assessment  when path ends with /edit
+  //         + Review Assessment when path ends with /review
+
+  if (path.startsWith("/dashboard/my-profile")) {
+    const dashCrumb: Crumb = { label: "Dashboard",  href: "/dashboard/my-profile" }
+    const profCrumb: Crumb = { label: "My Profile", href: "/dashboard/my-profile" }
+
+    if (path === "/dashboard/my-profile") {
+      // Root: "Dashboard" is the parent link, "My Profile" is the active page
+      return [dashCrumb, { label: "My Profile" }]
+    }
+    if (path === "/dashboard/my-profile/report") return [dashCrumb, profCrumb, { label: "My BMI Report" }]
+    if (path.endsWith("/new"))    return [dashCrumb, profCrumb, { label: "New Assessment" }]
+    if (path.endsWith("/edit"))   return [dashCrumb, profCrumb, { label: "Edit Assessment" }]
+    if (path.endsWith("/review")) return [dashCrumb, profCrumb, { label: "Review Assessment" }]
+    return [dashCrumb, { label: "My Profile" }]
   }
 
-  // ── System Admin: individual assessment detail ───────────────────────────
-  if (/^\/system_admin\/assessments\/.+/.test(path)) {
-    return [
-      { label: label(ADMIN_HOME),    href: ADMIN_HOME },
-      { label: "Assessment Details", href: path },
-    ]
+  // ── /dashboard/personnel ───────────────────────────────────────────────────
+  //  Display: Dashboard > Personnel Management
+  //         + Profile View  when a dynamic ID segment follows
+
+  if (path.startsWith("/dashboard/personnel")) {
+    const dashCrumb: Crumb  = { label: "Dashboard",            href: "/dashboard/personnel" }
+    const sectCrumb: Crumb  = { label: "Personnel Management", href: "/dashboard/personnel" }
+
+    if (path === "/dashboard/personnel") {
+      return [dashCrumb, { label: "Personnel Management" }]
+    }
+
+    // Check whether the segment immediately after /personnel/ is a raw ID
+    const tail         = path.slice("/dashboard/personnel/".length)
+    const firstSegment = tail.split("/")[0]
+
+    if (IS_DYNAMIC_ID.test(firstSegment)) {
+      return [dashCrumb, sectCrumb, { label: "Profile View" }]
+    }
+
+    return [dashCrumb, { label: "Personnel Management" }]
   }
 
-  // ── System Admin: BMI Reports ────────────────────────────────────────────
-  if (path === "/system_admin/reports") {
-    return [
-      { label: label(ADMIN_HOME),              href: ADMIN_HOME },
-      { label: label("/system_admin/reports"), href: path },
-    ]
+  // ── /dashboard/reports ─────────────────────────────────────────────────────
+
+  if (path.startsWith("/dashboard/reports")) {
+    const dashCrumb: Crumb = { label: "Dashboard", href: "/dashboard/personnel" }
+    if (path === "/dashboard/reports/export") {
+      return [dashCrumb, { label: "Reports", href: "/dashboard/reports/export" }, { label: "Generate Report" }]
+    }
+    return [dashCrumb, { label: "Reports" }]
   }
 
-  // ── System Admin: Settings ───────────────────────────────────────────────
-  if (path === "/system_admin/settings") {
-    return [
-      { label: label(ADMIN_HOME),               href: ADMIN_HOME },
-      { label: label("/system_admin/settings"), href: path },
-    ]
+  // ── /dashboard/sys-admin ───────────────────────────────────────────────────
+  //  Display: Dashboard > System Admin
+  //         + Users     for /users (and sub-routes)
+  //         + Settings  for /settings
+
+  if (path.startsWith("/dashboard/sys-admin")) {
+    const dashCrumb:  Crumb = { label: "Dashboard",   href: "/dashboard/personnel" }
+    const adminCrumb: Crumb = { label: "System Admin" }
+    const usersCrumb: Crumb = { label: "Users",        href: "/dashboard/sys-admin/users" }
+
+    const tail = path.slice("/dashboard/sys-admin".length) // e.g. "/users", "/settings"
+
+    if (tail.startsWith("/users")) {
+      if (tail === "/users")          return [dashCrumb, adminCrumb, { label: "Users" }]
+      if (tail === "/users/new")      return [dashCrumb, adminCrumb, usersCrumb, { label: "Add New User" }]
+      if (tail === "/users/archived") return [dashCrumb, adminCrumb, usersCrumb, { label: "Archived Accounts" }]
+      if (/^\/users\/.+\/edit$/.test(tail)) {
+        return [dashCrumb, adminCrumb, usersCrumb, { label: "Edit User" }]
+      }
+      return [dashCrumb, adminCrumb, { label: "Users" }]
+    }
+
+    if (tail === "/settings")         return [dashCrumb, adminCrumb, { label: "Settings" }]
+    if (tail.startsWith("/reports"))  return [dashCrumb, adminCrumb, { label: "BMI Reports" }]
+
+    return [dashCrumb, adminCrumb]
   }
 
-  // ── System Admin: User Management ───────────────────────────────────────
-  if (path === "/system_admin/users") {
-    return [
-      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
-      { label: label("/system_admin/users"), href: path },
-    ]
-  }
+  // ── Fallback ──────────────────────────────────────────────────────────────
 
-  if (path === "/system_admin/users/add") {
-    return [
-      { label: label(ADMIN_HOME),                href: ADMIN_HOME },
-      { label: label("/system_admin/users"),     href: "/system_admin/users" },
-      { label: label("/system_admin/users/add"), href: path },
-    ]
-  }
-
-  if (path === "/system_admin/users/archive") {
-    return [
-      { label: label(ADMIN_HOME),                    href: ADMIN_HOME },
-      { label: label("/system_admin/users"),         href: "/system_admin/users" },
-      { label: label("/system_admin/users/archive"), href: path },
-    ]
-  }
-
-  if (/^\/system_admin\/users\/edit\/.+/.test(path)) {
-    return [
-      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
-      { label: label("/system_admin/users"), href: "/system_admin/users" },
-      { label: "Edit User",                  href: path },
-    ]
-  }
-
-  if (/^\/system_admin\/users\/view\/.+/.test(path)) {
-    return [
-      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
-      { label: label("/system_admin/users"), href: "/system_admin/users" },
-      { label: "User Details",               href: path },
-    ]
-  }
-
-  // ── System Admin: Personnel ──────────────────────────────────────────────
-  if (path.startsWith("/system_admin/personnel")) {
-    return [
-      { label: label(ADMIN_HOME),                href: ADMIN_HOME },
-      { label: label("/system_admin/personnel"), href: "/system_admin/personnel" },
-    ]
-  }
-
-  // ── User: My Assessment (home) ───────────────────────────────────────────
-  if (path === "/user" || path === USER_HOME) {
-    return [
-      { label: label(USER_HOME), href: USER_HOME },
-    ]
-  }
-
-  // ── User: Assessment sub-routes ──────────────────────────────────────────
-  if (path === "/user/assessment/add") {
-    return [
-      { label: label(USER_HOME),              href: USER_HOME },
-      { label: label("/user/assessment/add"), href: path },
-    ]
-  }
-
-  if (path === "/user/assessment/new") {
-    return [
-      { label: label(USER_HOME),              href: USER_HOME },
-      { label: label("/user/assessment/new"), href: path },
-    ]
-  }
-
-  if (/^\/user\/assessment\/edit\/.+/.test(path)) {
-    return [
-      { label: label(USER_HOME), href: USER_HOME },
-      { label: "Edit Assessment", href: path },
-    ]
-  }
-
-  if (/^\/user\/assessment\/review\/.+/.test(path)) {
-    return [
-      { label: label(USER_HOME),    href: USER_HOME },
-      { label: "Review Assessment", href: path },
-    ]
-  }
-
-  if (/^\/user\/assessment\/view\/.+/.test(path)) {
-    return [
-      { label: label(USER_HOME),     href: USER_HOME },
-      { label: "Assessment Details", href: path },
-    ]
-  }
-
-  // ── User: Report / Print ─────────────────────────────────────────────────
-  if (path === "/user/report") {
-    return [
-      { label: label(USER_HOME),      href: USER_HOME },
-      { label: label("/user/report"), href: path },
-    ]
-  }
-
-  // ── User: Admin Export ───────────────────────────────────────────────────
-  if (path === "/user/report/admin-export") {
-    return [
-      { label: label(USER_HOME),                   href: USER_HOME },
-      { label: label("/user/report/admin-export"), href: path },
-    ]
-  }
-
-  // ── Fallback ─────────────────────────────────────────────────────────────
-  return [{ label: "Dashboard", href: "/" }]
+  return [{ label: "Dashboard" }]
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DynamicBreadcrumb() {
   const pathname = usePathname()
-  const crumbs = buildCrumbs(pathname.replace(/\/$/, ""))
+
+  // Hydration guard — usePathname() can be null during the initial SSR pass
+  if (!pathname) return null
+
+  const crumbs = buildCrumbs(pathname.replace(/\/+$/, "").trim()).filter(
+    (c) => c.label && c.label.trim() !== ""
+  )
+
+  if (crumbs.length === 0) return null
 
   return (
     <Breadcrumb>
@@ -203,16 +137,24 @@ export function DynamicBreadcrumb() {
         {crumbs.map((crumb, i) => {
           const isLast = i === crumbs.length - 1
           return (
-            <React.Fragment key={`${crumb.href}-${i}`}>
+            <React.Fragment key={`${crumb.href ?? crumb.label}-${i}`}>
               <BreadcrumbItem>
                 {isLast ? (
+                  // Current page — never a link
                   <BreadcrumbPage className="font-semibold text-gray-800">
                     {crumb.label}
                   </BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild className="text-muted-foreground hover:text-foreground transition-colors">
+                ) : crumb.href ? (
+                  // Parent with a navigable target
+                  <BreadcrumbLink
+                    asChild
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     <Link href={crumb.href}>{crumb.label}</Link>
                   </BreadcrumbLink>
+                ) : (
+                  // Section label — no link, styled identically to other ancestors
+                  <span className="text-sm text-muted-foreground">{crumb.label}</span>
                 )}
               </BreadcrumbItem>
 

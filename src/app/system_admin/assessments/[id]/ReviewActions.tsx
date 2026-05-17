@@ -32,7 +32,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
       if (result.error) { toast.error(result.error); return; }
       toast.success("Assessment approved successfully.");
       setApproveOpen(false);
-      router.push("/system_admin/assessments");
+      router.push("/dashboard/personnel");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to approve.");
     } finally {
@@ -47,7 +47,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
       if (result.error) { toast.error(result.error); return; }
       toast.success("Edit approved. The officer can now revise their submission.");
       setAllowEditOpen(false);
-      router.push("/system_admin/assessments");
+      router.push("/dashboard/personnel");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to allow edit.");
     } finally {
@@ -62,7 +62,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
       if (result.error) { toast.error(result.error); return; }
       toast.success("Assessment returned for correction.");
       setReturnOpen(false);
-      router.push("/system_admin/assessments");
+      router.push("/dashboard/personnel");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to return assessment.");
     } finally {

@@ -35,13 +35,13 @@ export default function UnauthorizedPage() {
 
         <div className="mt-8 flex flex-col gap-2">
           <Link
-            href="/user/report"
+            href="/dashboard/my-profile"
             className="inline-flex items-center justify-center rounded-lg bg-[#1a3a8a] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#142f73]"
           >
             Go to My BMI Report
           </Link>
           <Link
-            href="/user/assessment"
+            href="/dashboard/my-profile"
             className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             My Assessment

@@ -49,7 +49,7 @@ export async function addRank(name: string): Promise<{ error?: string }> {
     }
 
     audit("rank.created", userId, { name: parsed.data });
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }
@@ -68,7 +68,7 @@ export async function updateRank(id: string, name: string): Promise<{ error?: st
       throw error;
     }
 
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }
@@ -97,7 +97,7 @@ export async function deleteRank(id: string): Promise<{ error?: string }> {
     if (error) throw error;
 
     audit("rank.deleted", userId, { rankId: id, name: rank?.name });
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }
@@ -119,7 +119,7 @@ export async function addUnit(name: string): Promise<{ error?: string }> {
     }
 
     audit("unit.created", userId, { name: parsed.data });
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }
@@ -138,7 +138,7 @@ export async function updateUnit(id: string, name: string): Promise<{ error?: st
       throw error;
     }
 
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }
@@ -167,7 +167,7 @@ export async function deleteUnit(id: string): Promise<{ error?: string }> {
     if (error) throw error;
 
     audit("unit.deleted", userId, { unitId: id, name: unit?.name });
-    revalidatePath("/system_admin/settings");
+    revalidatePath("/dashboard/sys-admin/settings");
     return {};
   });
 }

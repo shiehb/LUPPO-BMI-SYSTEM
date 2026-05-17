@@ -153,8 +153,7 @@ export async function updateAssessmentStatus(
       }
     }
 
-    revalidatePath("/system_admin/personnel");
-    revalidatePath("/system_admin/assessments");
+    revalidatePath("/dashboard/personnel");
     return {};
   });
 }

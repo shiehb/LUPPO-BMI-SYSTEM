@@ -252,7 +252,7 @@ export function AssessmentInput({
 
       if (result.error) { toast.error(result.error); return; }
 
-      router.push(`/user/assessment/review/${result.id}`);
+      router.push(`/dashboard/my-profile/${result.id}/review`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -513,7 +513,7 @@ export function AssessmentInput({
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push("/user/assessment")}
+            onClick={() => router.push("/dashboard/my-profile")}
             className="w-full sm:w-auto"
           >
             Back to Assessments
@@ -568,7 +568,7 @@ export function AssessmentInput({
         title="Discard Changes?"
         description="All unsaved measurements and photos will be lost."
         confirmLabel="Discard"
-        onConfirm={() => router.push("/user/assessment")}
+        onConfirm={() => router.push("/dashboard/my-profile")}
       />
     </div>
   );

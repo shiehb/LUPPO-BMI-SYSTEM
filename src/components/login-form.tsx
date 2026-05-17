@@ -80,9 +80,9 @@ export function LoginForm() {
       .maybeSingle();
 
     const role = profile?.role;
-    if (role === "system_admin") router.push("/system_admin");
-    else if (role === "admin") router.push("/system_admin/assessments");
-    else router.push("/user/assessment");
+    if (role === "system_admin") router.push("/dashboard/personnel");
+    else if (role === "admin") router.push("/dashboard/personnel");
+    else router.push("/dashboard/my-profile");
   }
 
   return (

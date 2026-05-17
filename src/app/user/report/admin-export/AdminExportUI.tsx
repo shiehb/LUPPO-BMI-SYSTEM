@@ -35,14 +35,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
   Table,
   TableBody,
   TableCell,
@@ -322,19 +314,6 @@ export default function AdminExportUI() {
   /* ── Render ─────────────────────────────────────────────────────────────── */
   return (
     <div className="space-y-4">
-
-      {/* ── BREADCRUMB ────────────────────────────────────────────────────── */}
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/user/dashboard">Dashboard</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>BMI Reports</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
 
       {/* ── HEADING GROUP ─────────────────────────────────────────────────── */}
       <div className="space-y-0.5">

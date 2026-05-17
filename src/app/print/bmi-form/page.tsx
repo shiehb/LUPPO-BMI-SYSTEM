@@ -127,7 +127,7 @@ export default async function PrintBmiFormPage({ searchParams }: PageProps) {
   }
 
   const { id } = await searchParams;
-  if (!id) redirect("/user/report");
+  if (!id) redirect("/dashboard/my-profile");
 
   const result = await getAssessmentForPrint(id);
 

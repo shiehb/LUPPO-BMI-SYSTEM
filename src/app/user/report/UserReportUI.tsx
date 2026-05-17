@@ -11,16 +11,6 @@ import {
   Search,
 } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -90,7 +80,7 @@ export default function UserReportUI({
   function generate() {
     const params = new URLSearchParams({ year: localYear });
     if (localMonth) params.set("month", localMonth);
-    router.push(`/user/report?${params.toString()}`);
+    router.push(`/dashboard/my-profile/report?${params.toString()}`);
   }
 
   const monthsForLocalYear =
@@ -209,8 +199,6 @@ export default function UserReportUI({
 /* ── ASSESSMENT CARD ──────────────────────────────────────────────────────── */
 
 function AssessmentCard({ assessment }: { assessment: Assessment }) {
-  const [printConfirmOpen, setPrintConfirmOpen] = useState(false);
-
   const sc =
     STATUS_CONFIG[assessment.status as keyof typeof STATUS_CONFIG] ?? null;
 
@@ -244,16 +232,15 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setPrintConfirmOpen(true)}
+        <Link
+          href={printHref}
           className="hidden shrink-0 items-center gap-2 rounded-lg bg-[#1a3a8a] px-4 py-2.5
                      text-sm font-semibold text-white shadow-sm transition hover:bg-[#142f73]
                      active:scale-95 tab:inline-flex"
         >
           <Printer className="h-4 w-4" />
           Print Form
-        </button>
+        </Link>
       </div>
 
       {/* Card body */}
@@ -349,38 +336,16 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
 
       {/* Mobile print button */}
       <div className="mt-5 border-t border-slate-200 pt-4 tab:hidden">
-        <button
-          type="button"
-          onClick={() => setPrintConfirmOpen(true)}
+        <Link
+          href={printHref}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a3a8a]
                      px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition
                      hover:bg-[#142f73] active:scale-95"
         >
           <Printer className="h-4 w-4" />
           Print Form
-        </button>
+        </Link>
       </div>
-
-      {/* Print confirmation dialog */}
-      <AlertDialog open={printConfirmOpen} onOpenChange={setPrintConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Print BMI Form?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will open the BMI assessment form for{" "}
-              <strong>{monthYear}</strong> in a new tab ready for printing.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => window.open(printHref, "_blank", "noopener,noreferrer")}
-            >
-              Open &amp; Print
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
@@ -404,7 +369,7 @@ function EmptyState({ year, month }: { year: number; month: number | null }) {
         </p>
       </div>
       <Link
-        href="/user/assessment"
+        href="/dashboard/my-profile"
         className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white
                    px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
       >

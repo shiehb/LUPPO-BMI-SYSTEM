@@ -43,9 +43,9 @@ export async function middleware(request: NextRequest) {
         .single();
 
       const role = profile?.role;
-      if (role === "system_admin") return NextResponse.redirect(new URL("/system_admin", request.url));
-      if (role === "admin") return NextResponse.redirect(new URL("/system_admin/assessments", request.url));
-      return NextResponse.redirect(new URL("/user/assessment", request.url));
+      if (role === "system_admin") return NextResponse.redirect(new URL("/dashboard/personnel", request.url));
+      if (role === "admin") return NextResponse.redirect(new URL("/dashboard/personnel", request.url));
+      return NextResponse.redirect(new URL("/dashboard/my-profile", request.url));
     }
     return supabaseResponse;
   }
@@ -64,7 +64,24 @@ export async function middleware(request: NextRequest) {
 
   const role = profile?.role;
 
-  // Role-based route protection
+  // ── New /dashboard/ route protection ──────────────────────────────────────
+
+  // /dashboard/sys-admin/* — system_admin only
+  if (pathname.startsWith("/dashboard/sys-admin") && role !== "system_admin") {
+    return NextResponse.redirect(new URL("/dashboard/my-profile", request.url));
+  }
+
+  // /dashboard/personnel/* and /dashboard/reports/* — admin + system_admin
+  const dashboardAdminPrefixes = ["/dashboard/personnel", "/dashboard/reports"];
+  if (
+    dashboardAdminPrefixes.some((p) => pathname.startsWith(p)) &&
+    !["system_admin", "admin"].includes(role ?? "")
+  ) {
+    return NextResponse.redirect(new URL("/dashboard/my-profile", request.url));
+  }
+
+  // ── Legacy /system_admin/ route protection (kept for redirect stubs) ──────
+
   // Both system_admin and admin can access assessments and personnel master list
   const adminAllowedPrefixes = [
     "/system_admin/assessments",
@@ -77,7 +94,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
   if (pathname.startsWith("/system_admin") && role !== "system_admin") {
-    return NextResponse.redirect(new URL("/user/assessment", request.url));
+    return NextResponse.redirect(new URL("/dashboard/my-profile", request.url));
   }
 
   return supabaseResponse;

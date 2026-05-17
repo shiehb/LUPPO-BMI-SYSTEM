@@ -235,7 +235,7 @@ export async function createUser(
       role:        payload.role,
     });
 
-    revalidatePath("/system_admin/users");
+    revalidatePath("/dashboard/sys-admin/users");
     return { email: payload.email };
   });
 }
@@ -274,7 +274,7 @@ export async function updateUser(
     if (error) throw error;
 
     audit("user.updated", actorId, { targetId: id });
-    revalidatePath("/system_admin/users");
+    revalidatePath("/dashboard/sys-admin/users");
     return {};
   });
 }
@@ -295,7 +295,7 @@ export async function archiveUser(id: string): Promise<{ error?: string }> {
     if (error) throw error;
 
     audit("user.archived", actorId, { targetId: id });
-    revalidatePath("/system_admin/users");
+    revalidatePath("/dashboard/sys-admin/users");
     return {};
   });
 }
@@ -316,7 +316,7 @@ export async function restoreUser(id: string): Promise<{ error?: string }> {
     if (error) throw error;
 
     audit("user.restored", actorId, { targetId: id });
-    revalidatePath("/system_admin/users");
+    revalidatePath("/dashboard/sys-admin/users");
     return {};
   });
 }

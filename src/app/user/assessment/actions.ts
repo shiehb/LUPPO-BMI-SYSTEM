@@ -44,11 +44,8 @@ export interface SaveDraftPayload {
 }
 
 const REVALIDATE_PATHS = [
-  "/user",
-  "/user/assessment",
-  "/user/assessment/add",
-  "/user/assessment/edit",
-  "/user/assessment/review",
+  "/dashboard/my-profile",
+  "/dashboard/my-profile/new",
 ];
 
 function revalidateAll() {

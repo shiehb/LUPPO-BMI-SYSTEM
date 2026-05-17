@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Printer } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Loader2, Printer } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    DATA INTERFACE
@@ -410,7 +411,8 @@ async function loadPdfMake(): Promise<any> {
    COMPONENT
    ───────────────────────────────────────────────────────────────────────────── */
 export default function BmiMonitoringFormPrint({ data }: { data?: PrintFormData }) {
-  const d = data ?? SAMPLE;
+  const d      = data ?? SAMPLE;
+  const router = useRouter();
 
   const [blobUrl, setBlobUrl]   = useState<string | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -476,6 +478,26 @@ export default function BmiMonitoringFormPrint({ data }: { data?: PrintFormData 
     <div className="flex h-screen flex-col overflow-hidden bg-gray-100">
 
       {/* ── Top Bar ────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-2 shadow-sm">
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard/my-profile")}
+          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePrint}
+          disabled={!blobUrl || loading}
+          className="flex items-center gap-2 rounded-md bg-[#1e3a5f] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#162d4a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <Printer className="size-4" />
+          Print / Download
+        </button>
+      </div>
 
       {/* ── PDF Viewer ─────────────────────────────────────────────────────── */}
       <div className="relative flex-1">
