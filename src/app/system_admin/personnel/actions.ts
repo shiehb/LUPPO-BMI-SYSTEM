@@ -43,7 +43,7 @@ export async function getPersonnelRecords(month: string): Promise<PersonnelRecor
       admin
         .from("profiles")
         .select(
-          "id, badge_number, full_name, first_name, last_name, middle_name, qualifier, rank, unit_station, gender, birthdate, email, role, archived_at, created_at, updated_at"
+          "id, badge_number, full_name, first_name, last_name, middle_name, qualifier, rank, unit_station, gender, birthdate, email, role, is_approved, archived_at, created_at, updated_at"
         )
         .is("archived_at", null)
         .order("full_name", { ascending: true }),
