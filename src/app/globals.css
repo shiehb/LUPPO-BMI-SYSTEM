@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+    --breakpoint-tab: 600px;
+    --breakpoint-desk: 1025px;
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --color-sidebar-ring: var(--sidebar-ring);

@@ -15,6 +15,7 @@ import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
 import { useAssessmentStore, computePreview } from "@/store/assessmentStore";
 import { saveDraft } from "./actions";
 import type { Assessment, Profile } from "@/lib/types";
+import { PhotoCropper } from "@/components/PhotoCropper";
 import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Input } from "@/components/ui/input";
@@ -96,9 +97,10 @@ export function AssessmentInput({
   const isLocked   = initialData?.status === "pending_approval" || initialData?.status === "approved";
   const isRevision = initialData?.status === "revision_required";
 
-  const [isSaving,   setIsSaving]   = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [photos,     setPhotos]     = useState<Partial<Record<PhotoView, PhotoFile>>>({});
+  const [isSaving,    setIsSaving]   = useState(false);
+  const [cancelOpen,  setCancelOpen] = useState(false);
+  const [photos,      setPhotos]     = useState<Partial<Record<PhotoView, PhotoFile>>>({});
+  const [cropTarget,  setCropTarget] = useState<{ view: PhotoView; srcUrl: string } | null>(null);
 
   const { setProfileContext, setMeasurements } = useAssessmentStore();
 
@@ -142,10 +144,23 @@ export function AssessmentInput({
 
   function handlePhotoSelect(view: PhotoView, file: File | undefined) {
     if (!file) return;
+    setCropTarget({ view, srcUrl: URL.createObjectURL(file) });
+  }
+
+  function handleCropConfirm(file: File, preview: string) {
+    if (!cropTarget) return;
+    const { view, srcUrl } = cropTarget;
+    URL.revokeObjectURL(srcUrl);
     setPhotos((prev) => {
       if (prev[view]) URL.revokeObjectURL(prev[view]!.preview);
-      return { ...prev, [view]: { file, preview: URL.createObjectURL(file) } };
+      return { ...prev, [view]: { file, preview } };
     });
+    setCropTarget(null);
+  }
+
+  function handleCropCancel() {
+    if (cropTarget) URL.revokeObjectURL(cropTarget.srcUrl);
+    setCropTarget(null);
   }
 
   function removePhoto(view: PhotoView) {
@@ -526,6 +541,16 @@ export function AssessmentInput({
           </div>
         )}
       </form>
+
+      {/* ── Photo crop modal ── */}
+      {cropTarget && (
+        <PhotoCropper
+          src={cropTarget.srcUrl}
+          title={`Crop ${PHOTO_LABELS[cropTarget.view]} View Photo`}
+          onConfirm={handleCropConfirm}
+          onCancel={handleCropCancel}
+        />
+      )}
 
       {/* ── Confirm discard dialog ── */}
       <ConfirmationDialog

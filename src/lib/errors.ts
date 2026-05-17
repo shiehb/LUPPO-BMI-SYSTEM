@@ -37,7 +37,12 @@ export function toClientError(
   err: unknown,
   fallback = "An unexpected error occurred. Please try again."
 ): string {
-  const message = err instanceof Error ? err.message : String(err);
+  const message =
+    err instanceof Error
+      ? err.message
+      : err != null && typeof err === "object" && "message" in err
+        ? String((err as { message: unknown }).message)
+        : String(err);
 
   if (message === "UNAUTHENTICATED")
     return "You must be logged in to perform this action.";

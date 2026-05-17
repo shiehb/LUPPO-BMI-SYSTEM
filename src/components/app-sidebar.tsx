@@ -25,24 +25,24 @@ import type { Role } from "@/lib/types"
 
 const MY_ASSESSMENT_ITEM = { title: "My Assessment", url: "/user/assessment",          icon: <ClipboardCheck className="size-4" /> }
 const BMI_RESULTS_ITEM   = { title: "BMI Results",   url: "/system_admin/assessments", icon: <ClipboardList  className="size-4" /> }
-const REPORTS_ITEM_ADMIN = { title: "Reports", url: "/system_admin/reports", icon: <FileText className="size-4" /> }
-const REPORTS_ITEM_USER  = { title: "Reports", url: "/user/reports", icon: <FileText className="size-4" /> }
+// All roles access their own individual report — no global personnel list.
+const REPORTS_ITEM       = { title: "My BMI Report", url: "/user/report",              icon: <FileText className="size-4" /> }
 
 const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode }[]> = {
   system_admin: [
     BMI_RESULTS_ITEM,
     { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM_ADMIN,
+    REPORTS_ITEM,
   ],
   admin: [
     BMI_RESULTS_ITEM,
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM_ADMIN,
+    REPORTS_ITEM,
   ],
   user: [
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM_USER,
+    REPORTS_ITEM,
   ],
 }
 
