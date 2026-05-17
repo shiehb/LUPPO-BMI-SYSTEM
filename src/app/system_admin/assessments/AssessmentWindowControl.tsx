@@ -40,6 +40,7 @@ export function AssessmentWindowControl() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isWindowOpen, setIsWindowOpen] = useState(false);
+  const [isLateClosed, setIsLateClosed] = useState(false);
   const [hasWindow, setHasWindow] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -75,6 +76,7 @@ export function AssessmentWindowControl() {
 
       const windowCheck = await checkAssessmentWindowOpen();
       setIsWindowOpen(windowCheck.isOpen);
+      setIsLateClosed(windowCheck.isLateClosed);
     } catch (error) {
       console.error("Failed to load assessment window:", error);
       toast.error("Failed to load assessment window");
@@ -125,7 +127,9 @@ export function AssessmentWindowControl() {
       const now = new Date();
       const start = new Date(formattedStartDate);
       const end = new Date(formattedEndDate);
-      setIsWindowOpen(now >= start && now <= end);
+      const isOpen = now >= start && now <= end;
+      setIsWindowOpen(isOpen);
+      setIsLateClosed(!isOpen && now > end);
       setHasWindow(true);
 
       toast.success("Submission window updated successfully");
@@ -141,6 +145,10 @@ export function AssessmentWindowControl() {
   const windowText = hasWindow
     ? `Submission Window: ${startDate} to ${endDate}`
     : `No active submission window for ${currentMonthLabel}`;
+
+  const lateOverrideHint = isLateClosed
+    ? "Late submission is allowed for System Admins after the deadline."
+    : null;
 
   const formatDisplayDate = (date?: Date) =>
     date
@@ -160,11 +168,17 @@ export function AssessmentWindowControl() {
           }`}
         >
           {isWindowOpen ? "✓ Open" : "✗ Closed"}
+          {isLateClosed ? " (Late Override)" : ""}
         </Badge>
 
-        <span className="text-sm text-gray-600">
-          {isLoading ? "Loading window..." : windowText}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm text-gray-600">
+            {isLoading ? "Loading window..." : windowText}
+          </span>
+          {lateOverrideHint ? (
+            <span className="text-sm text-amber-700">{lateOverrideHint}</span>
+          ) : null}
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

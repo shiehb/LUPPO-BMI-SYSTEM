@@ -6,6 +6,12 @@ import { getAdminClient } from "@/lib/auth/guards";
 import { AssessmentPayloadSchema, UuidSchema } from "@/lib/validation/schemas";
 import { withActionGuard } from "@/lib/errors";
 import { audit } from "@/lib/logger";
+import type { Role } from "@/lib/types";
+import {
+  checkAssessmentWindowOpen,
+  canBypassWindowClosed,
+  checkMonthlyAssessmentExists,
+} from "@/app/system_admin/assessments/assessment-window-actions";
 import {
   calculateBMI,
   getWHOCategory,
@@ -14,10 +20,6 @@ import {
 } from "@/lib/bmi";
 import { getPNPClassification, generateRemarks } from "@/lib/utils/pnp";
 import { getBodyFrame } from "@/lib/utils/wrist";
-import {
-  checkAssessmentWindowOpen,
-  checkMonthlyAssessmentExists,
-} from "@/app/system_admin/assessments/assessment-window-actions";
 
 function calcAge(birthdate: string): number {
   const birth = new Date(birthdate);
@@ -66,12 +68,28 @@ export async function saveDraft(
     if (!parsed.success) return { error: parsed.error.issues[0].message };
     const payload = parsed.data;
 
+    const windowCheck = await checkAssessmentWindowOpen();
+    if (windowCheck.isPrematureClosed && !payload.assessmentId) {
+      return { error: "The submission window has not started yet." };
+    }
+
     const admin = getAdminClient();
 
     if (payload.intent === "submit") {
-      const windowCheck = await checkAssessmentWindowOpen();
-      if (!windowCheck.isOpen)
+      const { data: userProfile } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = userProfile?.role as Role | null;
+
+      if (!windowCheck.isOpen && !canBypassWindowClosed(role, windowCheck)) {
         return { error: windowCheck.message || "Assessment window is currently closed." };
+      }
+
+      if (windowCheck.isPrematureClosed) {
+        return { error: windowCheck.message || "Assessment window has not opened yet." };
+      }
 
       if (!payload.assessmentId) {
         const monthlyCheck = await checkMonthlyAssessmentExists(user.id);
@@ -289,6 +307,21 @@ export async function submitAssessment(id: string): Promise<{ error?: string }> 
       .single();
 
     if (!assessment) return { error: "Assessment not found." };
+
+    const { data: userProfile } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const role = userProfile?.role as Role | null;
+
+    const windowCheck = await checkAssessmentWindowOpen();
+    if (!windowCheck.isOpen && !canBypassWindowClosed(role, windowCheck)) {
+      return { error: windowCheck.message || "Assessment window is currently closed." };
+    }
+    if (windowCheck.isPrematureClosed) {
+      return { error: windowCheck.message || "Assessment window has not opened yet." };
+    }
 
     const missing: string[] = [];
     if (!assessment.waist)           missing.push("waist");

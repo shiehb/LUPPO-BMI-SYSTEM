@@ -30,19 +30,19 @@ export function AssessmentConfirmDialog({
       <AlertDialogContent className="max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Confirm Assessment Submission</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-3 pt-2">
-            <p>
+          <div className="space-y-3 pt-2">
+            <AlertDialogDescription>
               Are you sure you want to create and submit your BMI assessment? You are only allowed to create 1 assessment for each month. Please make sure your weight, height, and side-view photos are completely accurate before proceeding.
-            </p>
+            </AlertDialogDescription>
             <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-900 border border-amber-200">
               <p className="font-semibold mb-1">⚠️ Important Reminder:</p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>This action cannot be easily undone for the current month</li>
                 <li>Ensure all measurements are accurate before submission</li>
-                <li>Photos must clearly show your physique from all angles</li>
+                <li>Photos must clearly show your physique from the side profile</li>
               </ul>
             </div>
-          </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>

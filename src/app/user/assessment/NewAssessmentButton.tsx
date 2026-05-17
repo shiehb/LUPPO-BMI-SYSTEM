@@ -12,16 +12,35 @@ interface NewAssessmentButtonProps {
   userId: string;
   hasDraft?: boolean;
   draftId?: string;
+  submissionWindowStartDate?: string;
+  submissionWindowEndDate?: string;
 }
 
 export function NewAssessmentButton({
   userId,
   hasDraft,
   draftId,
+  submissionWindowStartDate,
 }: NewAssessmentButtonProps) {
   const [hasMonthlyAssessment, setHasMonthlyAssessment] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const windowStart = submissionWindowStartDate
+    ? new Date(`${submissionWindowStartDate}T00:00:00`)
+    : null;
+  if (windowStart) windowStart.setHours(0, 0, 0, 0);
+
+  const isWindowNotStarted = windowStart ? today.getTime() < windowStart.getTime() : false;
+  const windowOpensOn = windowStart
+    ? windowStart.toLocaleDateString("en-PH", {
+        month: "long",
+        day:   "numeric",
+        year:  "numeric",
+      })
+    : null;
 
   useEffect(() => {
     async function checkMonthly() {
@@ -77,13 +96,22 @@ export function NewAssessmentButton({
   // Eligible for new assessment — show button with confirmation
   return (
     <>
-      <Button
-        onClick={() => setConfirmOpen(true)}
-        className="gap-2 shrink-0"
-      >
-        <Plus className="size-4" />
-        New Assessment
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button
+          onClick={() => setConfirmOpen(true)}
+          className="gap-2 shrink-0"
+          disabled={isWindowNotStarted}
+        >
+          <Plus className="size-4" />
+          New Assessment
+        </Button>
+
+        {isWindowNotStarted && windowOpensOn ? (
+          <p className="text-sm text-amber-700">
+            Submission window opens on {windowOpensOn}.
+          </p>
+        ) : null}
+      </div>
 
       <AssessmentConfirmDialog
         open={confirmOpen}

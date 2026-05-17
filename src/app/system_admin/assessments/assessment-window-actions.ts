@@ -1,6 +1,7 @@
 "use server";
 
 import { requireSystemAdmin, getAdminClient } from "@/lib/auth/guards";
+import { Role } from "@/lib/types";
 import { AssessmentWindowSchema } from "@/lib/validation/schemas";
 import { withActionGuard } from "@/lib/errors";
 import { audit } from "@/lib/logger";
@@ -17,15 +18,19 @@ export async function getAssessmentWindow(monthStr: string) {
   return data;
 }
 
-export async function checkAssessmentWindowOpen(): Promise<{
-  isOpen:    boolean;
-  message?:  string;
-}> {
+export interface AssessmentWindowStatus {
+  isOpen:           boolean;
+  isLateClosed:     boolean;
+  isPrematureClosed: boolean;
+  message?:         string;
+}
+
+export async function checkAssessmentWindowOpen(): Promise<AssessmentWindowStatus> {
   const now      = new Date();
   const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const window   = await getAssessmentWindow(monthStr);
 
-  if (!window) return { isOpen: true };
+  if (!window) return { isOpen: true, isLateClosed: false, isPrematureClosed: false };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -36,10 +41,27 @@ export async function checkAssessmentWindowOpen(): Promise<{
   const endDate = new Date(window.end_date);
   endDate.setHours(23, 59, 59, 999);
 
-  if (today < startDate || today > endDate)
-    return { isOpen: false, message: "Assessment window is currently closed." };
+  if (today < startDate)
+    return {
+      isOpen: false,
+      isLateClosed: false,
+      isPrematureClosed: true,
+      message: "Assessment window has not opened yet.",
+    };
 
-  return { isOpen: true };
+  if (today > endDate)
+    return {
+      isOpen: false,
+      isLateClosed: true,
+      isPrematureClosed: false,
+      message: "Assessment window is currently closed.",
+    };
+
+  return { isOpen: true, isLateClosed: false, isPrematureClosed: false };
+}
+
+export async function canBypassWindowClosed(role: Role | null, windowStatus: AssessmentWindowStatus) {
+  return role === "system_admin" && windowStatus.isLateClosed;
 }
 
 export async function checkMonthlyAssessmentExists(

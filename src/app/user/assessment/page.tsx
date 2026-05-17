@@ -23,6 +23,7 @@ import type { WHOCategory } from "@/lib/utils/bmi";
 import type { PNPClassification } from "@/lib/utils/pnp";
 import { RequestToEditButton } from "./RequestToEditButton";
 import { NewAssessmentButton } from "./NewAssessmentButton";
+import { getAssessmentWindow } from "@/app/system_admin/assessments/assessment-window-actions";
 
 
 function getAdminClient() {
@@ -106,6 +107,23 @@ export default async function AssessmentPage() {
   const hasDraft    = draft !== null;
   const age         = profile?.birthdate ? calculateAge(profile.birthdate) : null;
 
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const submissionWindow = await getAssessmentWindow(currentMonth);
+  const submissionStartDate = submissionWindow?.start_date ?? null;
+  const submissionEndDate = submissionWindow?.end_date ?? null;
+  const submissionWindowNotStarted = submissionStartDate
+    ? now < new Date(`${submissionStartDate}T00:00:00`)
+    : false;
+  const submissionWindowOpensOn = submissionStartDate
+    ? new Date(`${submissionStartDate}T00:00:00`).toLocaleDateString("en-PH", {
+        month: "long",
+        day:   "numeric",
+        year:  "numeric",
+      })
+    : null;
+
   return (
     <div className="space-y-6">
 
@@ -142,6 +160,8 @@ export default async function AssessmentPage() {
             userId={user.id}
             hasDraft={hasDraft}
             draftId={draft?.id}
+            submissionWindowStartDate={submissionStartDate ?? undefined}
+            submissionWindowEndDate={submissionEndDate ?? undefined}
           />
         )}
       </div>
@@ -383,12 +403,26 @@ export default async function AssessmentPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Submit your first assessment to start tracking your BMI history.
               </p>
-              <Button asChild className="mt-4 gap-2">
-                <Link href="/user/assessment/add">
-                  <Plus className="size-4" />
-                  Create First Assessment
-                </Link>
-              </Button>
+              {submissionWindowNotStarted ? (
+                <div className="space-y-2">
+                  <Button disabled className="mt-4 gap-2">
+                    <Plus className="size-4" />
+                    Create First Assessment
+                  </Button>
+                  {submissionWindowOpensOn ? (
+                    <p className="text-sm text-amber-700">
+                      Submission window opens on {submissionWindowOpensOn}.
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <Button asChild className="mt-4 gap-2">
+                  <Link href="/user/assessment/add">
+                    <Plus className="size-4" />
+                    Create First Assessment
+                  </Link>
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
