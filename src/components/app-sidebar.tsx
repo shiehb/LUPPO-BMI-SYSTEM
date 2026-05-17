@@ -7,6 +7,7 @@ import {
   ClipboardList,
   ClipboardCheck,
   FileText,
+  FileSpreadsheet,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -23,33 +24,34 @@ import {
 } from "@/components/ui/sidebar"
 import type { Role } from "@/lib/types"
 
-const MY_ASSESSMENT_ITEM = { title: "My Assessment", url: "/user/assessment",          icon: <ClipboardCheck className="size-4" /> }
-const BMI_RESULTS_ITEM   = { title: "BMI Results",   url: "/system_admin/assessments", icon: <ClipboardList  className="size-4" /> }
-// All roles access their own individual report — no global personnel list.
-const REPORTS_ITEM       = { title: "My BMI Report", url: "/user/report",              icon: <FileText className="size-4" /> }
+const ADMIN_DASHBOARD_ITEM = { title: "Dashboard",     url: "/system_admin/assessments", icon: <ClipboardList   className="size-4" /> }
+const MY_ASSESSMENT_ITEM   = { title: "My Assessment", url: "/user/assessment",          icon: <ClipboardCheck  className="size-4" /> }
+const PRINT_ITEM           = { title: "Print",         url: "/print/bmi-form",           icon: <FileText        className="size-4" />, exactMatch: true }
+const ADMIN_EXPORT_ITEM    = { title: "Reports",       url: "/user/report/admin-export", icon: <FileSpreadsheet className="size-4" /> }
 
-const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode }[]> = {
+const NAV_ITEMS: Record<Role, { title: string; url: string; icon: React.ReactNode; exactMatch?: boolean }[]> = {
   system_admin: [
-    BMI_RESULTS_ITEM,
-    { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
+    ADMIN_DASHBOARD_ITEM,
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM,
+    PRINT_ITEM,
+    ADMIN_EXPORT_ITEM,
+    { title: "User Management", url: "/system_admin/users", icon: <Users className="size-4" /> },
   ],
   admin: [
-    BMI_RESULTS_ITEM,
+    ADMIN_DASHBOARD_ITEM,
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM,
+    PRINT_ITEM,
   ],
   user: [
     MY_ASSESSMENT_ITEM,
-    REPORTS_ITEM,
+    PRINT_ITEM,
   ],
 }
 
 const ROLE_SUBTITLE: Record<Role, string> = {
-  system_admin: "System Admin Panel",
-  admin:        "Personnel Portal",
-  user:         "Personnel Portal",
+  system_admin: "System Admin Officer",
+  admin:        "Admin Officer",
+  user:         "Officer",
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {

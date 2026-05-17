@@ -14,6 +14,7 @@ export interface NavItem {
   title: string
   url: string
   icon: React.ReactNode
+  exactMatch?: boolean // when true, only marks active on exact URL (not sub-paths)
 }
 
 export function NavMain({ items }: { items: NavItem[] }) {
@@ -27,7 +28,11 @@ export function NavMain({ items }: { items: NavItem[] }) {
           <SidebarMenuItem key={item.url}>
             <SidebarMenuButton
               asChild
-              isActive={pathname === item.url || pathname.startsWith(item.url + "/")}
+              isActive={
+                item.exactMatch
+                  ? pathname === item.url
+                  : pathname === item.url || pathname.startsWith(item.url + "/")
+              }
               tooltip={item.title}
             >
               <Link href={item.url}>

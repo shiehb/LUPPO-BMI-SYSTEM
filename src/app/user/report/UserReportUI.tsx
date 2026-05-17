@@ -3,7 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Printer, CalendarDays, ClipboardX, FileText, Search } from "lucide-react";
+import {
+  Printer,
+  CalendarDays,
+  ClipboardX,
+  FileText,
+  Search,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -68,7 +84,6 @@ export default function UserReportUI({
   rank,
 }: Props) {
   const router = useRouter();
-
   const [localYear,  setLocalYear]  = useState(String(year));
   const [localMonth, setLocalMonth] = useState(month ? String(month) : "");
 
@@ -84,14 +99,13 @@ export default function UserReportUI({
   return (
     <div className="space-y-6">
 
-      {/* ── PAGE HEADER + FILTER BAR ────────────────────────────────────── */}
-      {/*
-        Mobile/Tablet : stacked — header on top, filter bar below
-        Desktop       : side-by-side — header left, filter bar right
-      */}
-      <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 desk:flex-row desk:items-end desk:justify-between desk:gap-8">
+      {/* ── PAGE HEADER ──────────────────────────────────────────────────────
+          Left : report title + officer name
+          Right: filter bar                                                 */}
+      <div className="flex flex-col gap-4 border-b border-gray-100 pb-5
+                      desk:flex-row desk:items-end desk:justify-between desk:gap-8">
 
-        {/* Header */}
+        {/* Title block */}
         <div>
           <h1 className="text-2xl font-bold text-gray-800">My BMI Report</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
@@ -102,73 +116,75 @@ export default function UserReportUI({
           </p>
         </div>
 
-        {/* Filter bar — shrinks to its content on desktop */}
+        {/* Filter bar */}
         <div className="shrink-0 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <div className="grid grid-cols-2 gap-3 tab:flex tab:flex-row tab:flex-nowrap tab:items-end tab:gap-3">
+          <div className="grid grid-cols-2 gap-3
+                          tab:flex tab:flex-row tab:flex-nowrap tab:items-end tab:gap-3">
 
-          {/* Year */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Year
-            </label>
-            <Select
-              value={localYear}
-              onValueChange={(v) => { setLocalYear(v); setLocalMonth(""); }}
-            >
-              <SelectTrigger className="!h-[42px] w-full bg-white tab:w-[112px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {YEARS.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Year */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Year
+                </label>
+                <Select
+                  value={localYear}
+                  onValueChange={(v) => { setLocalYear(v); setLocalMonth(""); }}
+                >
+                  <SelectTrigger className="!h-[42px] w-full bg-white tab:w-[112px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {YEARS.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Month */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Month
-            </label>
-            <Select value={localMonth} onValueChange={setLocalMonth}>
-              <SelectTrigger className="!h-[42px] w-full bg-white tab:w-[152px]">
-                <SelectValue placeholder="All months" />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTH_NAMES.map((name, i) => {
-                  const m = i + 1;
-                  const hasData = monthsForLocalYear.includes(m);
-                  return (
-                    <SelectItem key={m} value={String(m)}>
-                      <span className={cn(!hasData && localYear === String(year) && "text-slate-400")}>
-                        {name}
-                      </span>
-                      {hasData && (
-                        <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500 align-middle" />
-                      )}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
+              {/* Month */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Month
+                </label>
+                <Select value={localMonth} onValueChange={setLocalMonth}>
+                  <SelectTrigger className="!h-[42px] w-full bg-white tab:w-[152px]">
+                    <SelectValue placeholder="All months" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES.map((mName, i) => {
+                      const m = i + 1;
+                      const hasData = monthsForLocalYear.includes(m);
+                      return (
+                        <SelectItem key={m} value={String(m)}>
+                          <span className={cn(!hasData && localYear === String(year) && "text-slate-400")}>
+                            {mName}
+                          </span>
+                          {hasData && (
+                            <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-green-500 align-middle" />
+                          )}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Generate — spans both columns on mobile, auto width on tablet+ */}
-          <div className="col-span-2 tab:col-auto tab:shrink-0">
-            <Button
-              onClick={generate}
-              className="!h-[42px] w-full gap-2 bg-[#1a3a8a] text-white hover:bg-[#142f73] tab:w-auto tab:whitespace-nowrap"
-            >
-              <Search className="h-4 w-4" />
-              Generate Report
-            </Button>
+              {/* Generate — full-width on mobile, auto on tablet+ */}
+              <div className="col-span-2 tab:col-auto tab:shrink-0">
+                <Button
+                  onClick={generate}
+                  className="!h-[42px] w-full gap-2 bg-[#1a3a8a] text-white hover:bg-[#142f73]
+                             tab:w-auto tab:whitespace-nowrap"
+                >
+                  <Search className="h-4 w-4" />
+                  Generate Report
+                </Button>
+              </div>
           </div>
         </div>
-        </div> {/* end filter bar box */}
-      </div>   {/* end header + filter row */}
+      </div>
 
-      {/* ── RESULTS ─────────────────────────────────────────────────────── */}
+      {/* ── RESULTS ──────────────────────────────────────────────────────── */}
       {month ? (
         selected ? (
           <AssessmentCard assessment={selected} />
@@ -193,6 +209,8 @@ export default function UserReportUI({
 /* ── ASSESSMENT CARD ──────────────────────────────────────────────────────── */
 
 function AssessmentCard({ assessment }: { assessment: Assessment }) {
+  const [printConfirmOpen, setPrintConfirmOpen] = useState(false);
+
   const sc =
     STATUS_CONFIG[assessment.status as keyof typeof STATUS_CONFIG] ?? null;
 
@@ -210,12 +228,8 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
 
-      {/* ── Card Header ─────────────────────────────────────────────────
-          Mobile  : stacked column — print button hidden here
-          Tablet+ : flex row — print button anchored top-right          */}
+      {/* Card header */}
       <div className="mb-[18px] flex flex-col items-start gap-2.5 tab:flex-row tab:items-start tab:justify-between">
-
-        {/* Date + status badges */}
         <div className="flex flex-wrap items-center gap-2">
           <CalendarDays className="h-4 w-4 shrink-0 text-slate-400" />
           <span className="font-semibold text-slate-800">{monthYear}</span>
@@ -230,40 +244,36 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
           )}
         </div>
 
-        {/* Print button — hidden on mobile, shown on tablet+ */}
-        <Link
-          href={printHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden shrink-0 items-center gap-2 rounded-lg bg-[#1a3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#142f73] active:scale-95 tab:inline-flex"
+        <button
+          type="button"
+          onClick={() => setPrintConfirmOpen(true)}
+          className="hidden shrink-0 items-center gap-2 rounded-lg bg-[#1a3a8a] px-4 py-2.5
+                     text-sm font-semibold text-white shadow-sm transition hover:bg-[#142f73]
+                     active:scale-95 tab:inline-flex"
         >
           <Printer className="h-4 w-4" />
           Print Form
-        </Link>
+        </button>
       </div>
 
-      {/* ── Card Body ───────────────────────────────────────────────────
-          Mobile  : single column stack
-          Tablet  (>=600): grid 240px | 1fr
-          Desktop (>=1025): grid 280px | 1fr                            */}
-      <div className="flex flex-col gap-4 tab:grid tab:grid-cols-[240px_1fr] tab:items-start tab:gap-5 desk:grid-cols-[280px_1fr] desk:gap-7">
+      {/* Card body */}
+      <div className="flex flex-col gap-4
+                      tab:grid tab:grid-cols-[240px_1fr] tab:items-start tab:gap-5
+                      desk:grid-cols-[280px_1fr] desk:gap-7">
 
-        {/* LEFT — Primary Score Box
-            Mobile  : 2-col horizontal split (BMI Score | Classification)
-            Tablet+ : vertical stack with divider line                   */}
-        <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 tab:flex tab:h-full tab:flex-col">
-
-          {/* BMI Score */}
-          <div className="border-r border-slate-200 px-3.5 py-4 tab:flex-1 tab:border-r-0 tab:border-b tab:p-5 desk:p-6">
+        {/* Score + classification block */}
+        <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50
+                        tab:flex tab:h-full tab:flex-col">
+          <div className="border-r border-slate-200 px-3.5 py-4
+                          tab:flex-1 tab:border-r-0 tab:border-b tab:p-5 desk:p-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
               BMI Score
             </p>
-            <p className="mt-1.5 font-mono text-[30px] font-bold leading-none text-slate-800 tab:text-[34px] desk:text-[40px]">
+            <p className="mt-1.5 font-mono text-[30px] font-bold leading-none text-slate-800
+                          tab:text-[34px] desk:text-[40px]">
               {Number(assessment.bmi_score).toFixed(2)}
             </p>
           </div>
-
-          {/* Classification — PNP Standard + WHO Standard */}
           <div className="px-3.5 py-4 tab:flex-1 tab:p-5 desk:p-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
               Classification
@@ -289,40 +299,31 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
           </div>
         </div>
 
-        {/* RIGHT — Measurements */}
+        {/* Measurement tiles */}
         <div className="flex flex-col gap-2.5">
-
-          {/* Tiles grid
-              Mobile/Tablet : 2-column
-              Desktop       : 3-column                                   */}
           <div className="grid grid-cols-2 gap-2.5 desk:grid-cols-3 desk:gap-3">
-
             <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3 desk:px-4 desk:py-3.5">
               <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">Weight</p>
               <p className="text-[13px] font-semibold text-slate-800 desk:text-sm">{assessment.weight} kg</p>
             </div>
-
             <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3 desk:px-4 desk:py-3.5">
               <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">Height</p>
               <p className="text-[13px] font-semibold text-slate-800 desk:text-sm">
                 {Number(assessment.height).toFixed(2)} m
               </p>
             </div>
-
             {assessment.waist && (
               <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3 desk:px-4 desk:py-3.5">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">Waist</p>
                 <p className="text-[13px] font-semibold text-slate-800 desk:text-sm">{assessment.waist} cm</p>
               </div>
             )}
-
             {assessment.hip && (
               <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3 desk:px-4 desk:py-3.5">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">Hip</p>
                 <p className="text-[13px] font-semibold text-slate-800 desk:text-sm">{assessment.hip} cm</p>
               </div>
             )}
-
             {assessment.wrist && (
               <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3 desk:px-4 desk:py-3.5">
                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">Wrist</p>
@@ -331,7 +332,6 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
             )}
           </div>
 
-          {/* Normal Range — full-width bar at the bottom */}
           {hasNormalRange && (
             <div className="flex items-center justify-between gap-2 rounded-[10px] border border-slate-200 bg-slate-100 px-3.5 py-2.5">
               <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 desk:text-[11px]">
@@ -347,19 +347,40 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
         </div>
       </div>
 
-      {/* ── Mobile Print Action Bar ──────────────────────────────────────
-          Full-width button at the bottom; hidden on tablet+             */}
+      {/* Mobile print button */}
       <div className="mt-5 border-t border-slate-200 pt-4 tab:hidden">
-        <Link
-          href={printHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a3a8a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#142f73] active:scale-95"
+        <button
+          type="button"
+          onClick={() => setPrintConfirmOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#1a3a8a]
+                     px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition
+                     hover:bg-[#142f73] active:scale-95"
         >
           <Printer className="h-4 w-4" />
           Print Form
-        </Link>
+        </button>
       </div>
+
+      {/* Print confirmation dialog */}
+      <AlertDialog open={printConfirmOpen} onOpenChange={setPrintConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Print BMI Form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will open the BMI assessment form for{" "}
+              <strong>{monthYear}</strong> in a new tab ready for printing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => window.open(printHref, "_blank", "noopener,noreferrer")}
+            >
+              Open &amp; Print
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -369,7 +390,8 @@ function AssessmentCard({ assessment }: { assessment: Assessment }) {
 function EmptyState({ year, month }: { year: number; month: number | null }) {
   const label = month ? `${MONTH_NAMES[month - 1]} ${year}` : String(year);
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border
+                    border-dashed border-slate-200 bg-slate-50 px-6 py-16 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
         <ClipboardX className="h-7 w-7" />
       </div>
@@ -383,7 +405,8 @@ function EmptyState({ year, month }: { year: number; month: number | null }) {
       </div>
       <Link
         href="/user/assessment"
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white
+                   px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
       >
         <FileText className="h-4 w-4" />
         Go to My Assessment

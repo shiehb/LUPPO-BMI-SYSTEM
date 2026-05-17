@@ -15,150 +15,175 @@ import {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const ADMIN_HOME = "/system_admin/assessments"
-const USER_HOME  = "/user"
+const USER_HOME  = "/user/assessment"
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Crumb = { label: string; href: string }
 
+// ── Breadcrumb name map ───────────────────────────────────────────────────────
+
+const breadcrumbNameMap: Record<string, string> = {
+  // ── System Admin ────────────────────────────────────────────────────────
+  "/system_admin":                  "Dashboard",
+  "/system_admin/assessments":      "Dashboard",
+  "/system_admin/reports":          "BMI Reports",
+  "/system_admin/settings":         "Settings",
+  "/system_admin/users":            "User Management",
+  "/system_admin/users/add":        "Add New User",
+  "/system_admin/users/archive":    "Archived Accounts",
+  "/system_admin/personnel":        "Personnel",
+  // ── User ────────────────────────────────────────────────────────────────
+  "/user/assessment":               "My Assessment",
+  "/user/assessment/add":           "Add New",
+  "/user/assessment/new":           "New Assessment",
+  "/user/report":                   "Print",
+  "/user/report/admin-export":      "Generate Report",
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const label = (path: string): string => breadcrumbNameMap[path] ?? path
+
 // ── Route resolver ─────────────────────────────────────────────────────────────
-//
-// Returns the exact breadcrumb trail for a given pathname.
-// Explicit mapping is used instead of segment-splitting so that special cases
-// like collapsing /system_admin/assessments into "Dashboard" (single crumb)
-// and distinguishing "My Assessment" vs "Assessment Details" are unambiguous.
 
 function buildCrumbs(path: string): Crumb[] {
 
-  // ── System Admin: BMI Results (home / default landing) ──────────────────
+  // ── System Admin: Dashboard (home / default landing) ────────────────────
   if (path === "/system_admin" || path === "/system_admin/assessments") {
     return [
-      { label: "Dashboard", href: ADMIN_HOME },
+      { label: label(ADMIN_HOME), href: ADMIN_HOME },
     ]
   }
 
   // ── System Admin: individual assessment detail ───────────────────────────
   if (/^\/system_admin\/assessments\/.+/.test(path)) {
     return [
-      { label: "Dashboard",          href: ADMIN_HOME },
+      { label: label(ADMIN_HOME),    href: ADMIN_HOME },
       { label: "Assessment Details", href: path },
     ]
   }
 
-  // ── System Admin: User Management root ──────────────────────────────────
-  if (path === "/system_admin/users") {
+  // ── System Admin: BMI Reports ────────────────────────────────────────────
+  if (path === "/system_admin/reports") {
     return [
-      { label: "Dashboard",       href: ADMIN_HOME },
-      { label: "User Management", href: "/system_admin/users" },
-    ]
-  }
-
-  // ── System Admin: User Management sub-routes ────────────────────────────
-  if (path === "/system_admin/users/add") {
-    return [
-      { label: "Dashboard",       href: ADMIN_HOME },
-      { label: "User Management", href: "/system_admin/users" },
-      { label: "Add New User",    href: path },
-    ]
-  }
-
-  if (path === "/system_admin/users/archive") {
-    return [
-      { label: "Dashboard",         href: ADMIN_HOME },
-      { label: "User Management",   href: "/system_admin/users" },
-      { label: "Archived Accounts", href: path },
-    ]
-  }
-
-  if (/^\/system_admin\/users\/edit\/.+/.test(path)) {
-    return [
-      { label: "Dashboard",       href: ADMIN_HOME },
-      { label: "User Management", href: "/system_admin/users" },
-      { label: "Edit User",       href: path },
-    ]
-  }
-
-  if (/^\/system_admin\/users\/view\/.+/.test(path)) {
-    return [
-      { label: "Dashboard",       href: ADMIN_HOME },
-      { label: "User Management", href: "/system_admin/users" },
-      { label: "User Details",    href: path },
+      { label: label(ADMIN_HOME),              href: ADMIN_HOME },
+      { label: label("/system_admin/reports"), href: path },
     ]
   }
 
   // ── System Admin: Settings ───────────────────────────────────────────────
   if (path === "/system_admin/settings") {
     return [
-      { label: "Dashboard", href: ADMIN_HOME },
-      { label: "Settings",  href: path },
+      { label: label(ADMIN_HOME),               href: ADMIN_HOME },
+      { label: label("/system_admin/settings"), href: path },
     ]
   }
-  // ── System Admin: Reports ──────────────────────────────────────────────────────────────
-  if (path === "/system_admin/reports") {
+
+  // ── System Admin: User Management ───────────────────────────────────────
+  if (path === "/system_admin/users") {
     return [
-      { label: "Dashboard", href: ADMIN_HOME },
-      { label: "Reports",   href: path },
+      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
+      { label: label("/system_admin/users"), href: path },
     ]
   }
+
+  if (path === "/system_admin/users/add") {
+    return [
+      { label: label(ADMIN_HOME),                href: ADMIN_HOME },
+      { label: label("/system_admin/users"),     href: "/system_admin/users" },
+      { label: label("/system_admin/users/add"), href: path },
+    ]
+  }
+
+  if (path === "/system_admin/users/archive") {
+    return [
+      { label: label(ADMIN_HOME),                    href: ADMIN_HOME },
+      { label: label("/system_admin/users"),         href: "/system_admin/users" },
+      { label: label("/system_admin/users/archive"), href: path },
+    ]
+  }
+
+  if (/^\/system_admin\/users\/edit\/.+/.test(path)) {
+    return [
+      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
+      { label: label("/system_admin/users"), href: "/system_admin/users" },
+      { label: "Edit User",                  href: path },
+    ]
+  }
+
+  if (/^\/system_admin\/users\/view\/.+/.test(path)) {
+    return [
+      { label: label(ADMIN_HOME),            href: ADMIN_HOME },
+      { label: label("/system_admin/users"), href: "/system_admin/users" },
+      { label: "User Details",               href: path },
+    ]
+  }
+
   // ── System Admin: Personnel ──────────────────────────────────────────────
   if (path.startsWith("/system_admin/personnel")) {
     return [
-      { label: "Dashboard",  href: ADMIN_HOME },
-      { label: "Personnel",  href: "/system_admin/personnel" },
+      { label: label(ADMIN_HOME),                href: ADMIN_HOME },
+      { label: label("/system_admin/personnel"), href: "/system_admin/personnel" },
     ]
   }
 
-  // ── User: home dashboard ─────────────────────────────────────────────────
-  if (path === USER_HOME) {
+  // ── User: My Assessment (home) ───────────────────────────────────────────
+  if (path === "/user" || path === USER_HOME) {
     return [
-      { label: "Dashboard", href: USER_HOME },
+      { label: label(USER_HOME), href: USER_HOME },
     ]
   }
 
-  // ── User: My Assessment root ─────────────────────────────────────────────
-  if (path === "/user/assessment") {
-    return [
-      { label: "Dashboard",     href: USER_HOME },
-      { label: "My Assessment", href: "/user/assessment" },
-    ]
-  }
-  // ── User: Reports ──────────────────────────────────────────────────────────────────────
-  if (path === "/user/reports") {
-    return [
-      { label: "Dashboard", href: USER_HOME },
-      { label: "Reports",   href: path },
-    ]
-  }
   // ── User: Assessment sub-routes ──────────────────────────────────────────
   if (path === "/user/assessment/add") {
     return [
-      { label: "Dashboard",     href: USER_HOME },
-      { label: "My Assessment", href: "/user/assessment" },
-      { label: "Add New",       href: path },
+      { label: label(USER_HOME),              href: USER_HOME },
+      { label: label("/user/assessment/add"), href: path },
+    ]
+  }
+
+  if (path === "/user/assessment/new") {
+    return [
+      { label: label(USER_HOME),              href: USER_HOME },
+      { label: label("/user/assessment/new"), href: path },
     ]
   }
 
   if (/^\/user\/assessment\/edit\/.+/.test(path)) {
     return [
-      { label: "Dashboard",       href: USER_HOME },
-      { label: "My Assessment",   href: "/user/assessment" },
+      { label: label(USER_HOME), href: USER_HOME },
       { label: "Edit Assessment", href: path },
     ]
   }
 
   if (/^\/user\/assessment\/review\/.+/.test(path)) {
     return [
-      { label: "Dashboard",         href: USER_HOME },
-      { label: "My Assessment",     href: "/user/assessment" },
+      { label: label(USER_HOME),    href: USER_HOME },
       { label: "Review Assessment", href: path },
     ]
   }
 
   if (/^\/user\/assessment\/view\/.+/.test(path)) {
     return [
-      { label: "Dashboard",          href: USER_HOME },
-      { label: "My Assessment",      href: "/user/assessment" },
+      { label: label(USER_HOME),     href: USER_HOME },
       { label: "Assessment Details", href: path },
+    ]
+  }
+
+  // ── User: Report / Print ─────────────────────────────────────────────────
+  if (path === "/user/report") {
+    return [
+      { label: label(USER_HOME),      href: USER_HOME },
+      { label: label("/user/report"), href: path },
+    ]
+  }
+
+  // ── User: Admin Export ───────────────────────────────────────────────────
+  if (path === "/user/report/admin-export") {
+    return [
+      { label: label(USER_HOME),                   href: USER_HOME },
+      { label: label("/user/report/admin-export"), href: path },
     ]
   }
 
