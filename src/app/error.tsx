@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
@@ -11,16 +12,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(
-      JSON.stringify({
-        level:   "error",
-        domain:  "system",
-        event:   "unhandled_client_error",
-        message: error.message,
-        digest:  error.digest,
-        ts:      new Date().toISOString(),
-      })
-    );
+    Sentry.captureException(error);
   }, [error]);
 
   return (

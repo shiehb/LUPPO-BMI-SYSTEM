@@ -77,7 +77,7 @@ export default async function PersonnelAssessmentPage({
       <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
         <Link href="/dashboard/personnel">
           <ArrowLeft className="size-4 mr-1" />
-          Back to Pending List
+          Back to List
         </Link>
       </Button>
 
