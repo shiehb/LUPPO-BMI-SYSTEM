@@ -57,7 +57,7 @@ export function ReturnDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Return for Correction</DialogTitle>
+          <DialogTitle>Return</DialogTitle>
           <DialogDescription>
             Provide a reason for returning{" "}
             <span className="font-semibold">{officerName}</span>&apos;s
@@ -66,7 +66,7 @@ export function ReturnDialog({
         </DialogHeader>
 
         <div className="space-y-2 py-2">
-          <Label htmlFor="return-reason">Reason for return</Label>
+          <Label htmlFor="return-reason">Reason: </Label>
           <Textarea
             id="return-reason"
             placeholder="e.g. Measurements appear inconsistent with prior record…"

@@ -22,9 +22,21 @@ import {
   ClipboardCheck,
   Eye,
   Loader2,
+  PencilLine,
   Search,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +59,7 @@ import {
 import { usePersonnelStore } from "@/store/personnelStore";
 import { filterPersonnelRecords } from "@/lib/utils/filter";
 import { notifyPersonnel } from "../personnel/actions";
+import { allowEditRequest } from "../assessments/actions";
 import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
@@ -110,6 +123,50 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
   { value: "not_started",      label: "Not Started" },
 ];
 
+// ─── Allow-edit button ────────────────────────────────────────────────────────
+
+function AllowEditButton({ assessmentId }: { assessmentId: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  function handleConfirm() {
+    startTransition(async () => {
+      const { error } = await allowEditRequest(assessmentId);
+      if (error) toast.error(`Allow edit failed: ${error}`);
+      else toast.success("Edit access granted.");
+    });
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5 text-xs border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+          disabled={isPending}
+        >
+          {isPending ? <Loader2 className="size-3 animate-spin" /> : <PencilLine className="size-3" />}
+          Allow Edit
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Allow Edit Request</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will unlock the assessment and return it to draft so the officer can make changes. The submission will need to be re-reviewed after resubmission.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm}>
+            Allow Edit
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 // ─── Action cell ───────────────────────────────────────────────────────────────
 
 function ActionCell({
@@ -144,17 +201,20 @@ function ActionCell({
     );
   }
 
-  // Pending — navigate to full-page review
+  // Pending — navigate to full-page review + always expose Allow Edit
   if (row.status === "pending_approval") {
     return (
-      <Button
-        size="sm"
-        className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
-      >
-        <ClipboardCheck className="size-3" />
-        Review Assessment
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          className="gap-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+          onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
+        >
+          <ClipboardCheck className="size-3" />
+          Review
+        </Button>
+        <AllowEditButton assessmentId={row.assessment!.id} />
+      </div>
     );
   }
 
@@ -167,7 +227,7 @@ function ActionCell({
       onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
     >
       <Eye className="size-3" />
-      View Details
+      Open
     </Button>
   );
 }

@@ -72,7 +72,7 @@ export default async function PersonnelAssessmentPage({
   const pnpStatus = assessment.bmi_pnp_status as PNPStatus;
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       {/* Back link */}
       <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
         <Link href="/dashboard/personnel">

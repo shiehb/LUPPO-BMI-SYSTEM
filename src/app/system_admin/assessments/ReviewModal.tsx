@@ -189,7 +189,7 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
           {showReturnForm && (
             <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-3">
               <Label htmlFor="return-reason" className="text-red-800">
-                Reason for return <span className="text-red-500">*</span>
+                Reason<span className="text-red-500">*</span>
               </Label>
               <Textarea
                 id="return-reason"
@@ -222,7 +222,7 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
                     disabled={isPending}
                   >
                     <XCircle className="size-4 mr-1.5" />
-                    Return for Correction
+                    Return
                   </Button>
                   <Button
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
@@ -234,7 +234,7 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
                     ) : (
                       <CheckCircle2 className="size-4 mr-1.5" />
                     )}
-                    Verify &amp; Approve
+                    Approve
                   </Button>
                 </>
               ) : (
@@ -259,7 +259,7 @@ export function ReviewModal({ record, open, onOpenChange }: ReviewModalProps) {
                     ) : (
                       <XCircle className="size-4 mr-1.5" />
                     )}
-                    Confirm Return
+                    Confirm
                   </Button>
                 </>
               )}
