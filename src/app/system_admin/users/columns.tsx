@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ColumnDef, Row, Table } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import { CheckCircle, MoreHorizontal, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { archiveUser } from "./actions";
+import { archiveUser, approveUser, deleteUser } from "./actions";
 import type { Profile, Role } from "@/lib/types";
 
 interface TableMeta {
@@ -43,12 +43,100 @@ function RoleBadge({ role }: { role: Role }) {
   );
 }
 
-function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }) {
+// ── Actions for pending (unapproved) rows ─────────────────────────────────────
+
+function PendingRowActions({ profile, table }: { profile: Profile; table: Table<Profile> }) {
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const meta = table.options.meta as TableMeta;
+
+  async function handleApprove() {
+    setIsApproving(true);
+    const result = await approveUser(profile.id);
+    setIsApproving(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(`${profile.full_name} has been approved and can now access the system.`);
+    setApproveOpen(false);
+    meta.onRefresh();
+  }
+
+  async function handleReject() {
+    setIsRejecting(true);
+    const result = await deleteUser(profile.id);
+    setIsRejecting(false);
+
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(`${profile.full_name}'s registration has been rejected and deleted.`);
+    setRejectOpen(false);
+    meta.onRefresh();
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:text-green-800"
+          onClick={() => setApproveOpen(true)}
+        >
+          <CheckCircle className="size-3.5" />
+          Approve
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
+          onClick={() => setRejectOpen(true)}
+        >
+          <XCircle className="size-3.5" />
+          Reject
+        </Button>
+      </div>
+
+      <ConfirmationDialog
+        open={approveOpen}
+        onOpenChange={setApproveOpen}
+        title="Approve Account?"
+        description={`${profile.full_name} will be granted full access to the system.`}
+        confirmLabel="Approve"
+        isPending={isApproving}
+        onConfirm={handleApprove}
+      />
+
+      <ConfirmationDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Reject & Delete Account?"
+        description={`This will permanently delete ${profile.full_name}'s account and profile. This cannot be undone.`}
+        confirmLabel="Delete Account"
+        variant="destructive"
+        isPending={isRejecting}
+        onConfirm={handleReject}
+      />
+    </>
+  );
+}
+
+// ── Actions for approved rows (existing 3-dot menu) ───────────────────────────
+
+function ApprovedRowActions({ profile, table }: { profile: Profile; table: Table<Profile> }) {
   const router = useRouter();
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
-  const profile = row.original;
   const meta = table.options.meta as TableMeta;
 
   async function handleArchive() {
@@ -101,6 +189,18 @@ function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }
     </>
   );
 }
+
+// ── Dispatcher ────────────────────────────────────────────────────────────────
+
+function RowActions({ row, table }: { row: Row<Profile>; table: Table<Profile> }) {
+  const profile = row.original;
+  if (!profile.is_approved) {
+    return <PendingRowActions profile={profile} table={table} />;
+  }
+  return <ApprovedRowActions profile={profile} table={table} />;
+}
+
+// ── Column definitions ────────────────────────────────────────────────────────
 
 export const columns: ColumnDef<Profile>[] = [
   {

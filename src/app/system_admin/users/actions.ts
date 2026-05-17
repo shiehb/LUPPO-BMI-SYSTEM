@@ -213,6 +213,7 @@ export async function createUser(
       unit_station:             payload.unit_station,
       email:                    payload.email,
       role:                     payload.role,
+      is_approved:              true,
       requires_password_change: true,
     });
 
@@ -316,6 +317,66 @@ export async function restoreUser(id: string): Promise<{ error?: string }> {
     if (error) throw error;
 
     audit("user.restored", actorId, { targetId: id });
+    revalidatePath("/dashboard/sys-admin/users");
+    return {};
+  });
+}
+
+export async function approveUser(id: string): Promise<{ error?: string }> {
+  return withActionGuard(async () => {
+    const { userId: actorId } = await requireSystemAdmin();
+
+    const idParsed = UuidSchema.safeParse(id);
+    if (!idParsed.success) return { error: "Invalid user ID." };
+
+    const admin = getAdminClient();
+    const { error } = await admin
+      .from("profiles")
+      .update({ is_approved: true })
+      .eq("id", idParsed.data);
+
+    if (error) throw error;
+
+    audit("user.approved", actorId, { targetId: id });
+    revalidatePath("/dashboard/sys-admin/users");
+    return {};
+  });
+}
+
+export async function revokeUserApproval(id: string): Promise<{ error?: string }> {
+  return withActionGuard(async () => {
+    const { userId: actorId } = await requireSystemAdmin();
+
+    const idParsed = UuidSchema.safeParse(id);
+    if (!idParsed.success) return { error: "Invalid user ID." };
+
+    const admin = getAdminClient();
+    const { error } = await admin
+      .from("profiles")
+      .update({ is_approved: false })
+      .eq("id", idParsed.data);
+
+    if (error) throw error;
+
+    audit("user.approval_revoked", actorId, { targetId: id });
+    revalidatePath("/dashboard/sys-admin/users");
+    return {};
+  });
+}
+
+export async function deleteUser(id: string): Promise<{ error?: string }> {
+  return withActionGuard(async () => {
+    const { userId: actorId } = await requireSystemAdmin();
+
+    const idParsed = UuidSchema.safeParse(id);
+    if (!idParsed.success) return { error: "Invalid user ID." };
+
+    const admin = getAdminClient();
+    // Deleting from auth.users cascades to public.profiles via FK
+    const { error } = await admin.auth.admin.deleteUser(idParsed.data);
+    if (error) throw error;
+
+    audit("user.deleted", actorId, { targetId: id });
     revalidatePath("/dashboard/sys-admin/users");
     return {};
   });

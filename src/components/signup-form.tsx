@@ -109,7 +109,16 @@ export function SignupForm() {
     });
 
     if (signUpError) {
-      setServerError(signUpError.message);
+      const msg = signUpError.message.toLowerCase();
+      if (msg.includes("rate limit") || msg.includes("email rate")) {
+        setServerError(
+          "Too many registration attempts. Please wait a few minutes before trying again, or contact your administrator."
+        );
+      } else if (msg.includes("already registered") || msg.includes("already been registered")) {
+        setServerError("An account with this email address already exists.");
+      } else {
+        setServerError(signUpError.message);
+      }
       return;
     }
 

@@ -38,11 +38,16 @@ export async function middleware(request: NextRequest) {
     if (user && (pathname === "/login" || pathname === "/signup")) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, is_approved")
         .eq("id", user.id)
         .single();
 
       const role = profile?.role;
+
+      if (!profile?.is_approved && role !== "system_admin") {
+        return NextResponse.redirect(new URL("/pending", request.url));
+      }
+
       if (role === "system_admin") return NextResponse.redirect(new URL("/dashboard/personnel", request.url));
       if (role === "admin") return NextResponse.redirect(new URL("/dashboard/personnel", request.url));
       return NextResponse.redirect(new URL("/dashboard/my-profile", request.url));
@@ -55,12 +60,21 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Fetch the user's role from profiles
+  // Fetch the user's role and approval status from profiles
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_approved")
     .eq("id", user.id)
     .single();
+
+  // Gate unapproved accounts to the /pending page only.
+  // system_admin is exempt — they never need approval.
+  if (!profile?.is_approved && profile?.role !== "system_admin") {
+    if (pathname !== "/pending") {
+      return NextResponse.redirect(new URL("/pending", request.url));
+    }
+    return supabaseResponse;
+  }
 
   const role = profile?.role;
 

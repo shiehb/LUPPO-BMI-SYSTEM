@@ -14,11 +14,12 @@ export async function requireAuth(): Promise<AuthContext> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, is_approved")
     .eq("id", user.id)
     .single();
 
   if (!profile) throw new Error("UNAUTHENTICATED");
+  if (!profile.is_approved && profile.role !== "system_admin") throw new Error("PENDING_APPROVAL");
   return { userId: user.id, role: profile.role as Role };
 }
 

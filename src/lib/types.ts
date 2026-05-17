@@ -14,6 +14,7 @@ export interface Profile {
   birthdate: string | null;
   email: string;
   role: Role;
+  is_approved: boolean;
   requires_password_change?: boolean;
   archived_at?: string | null;
   created_at: string;

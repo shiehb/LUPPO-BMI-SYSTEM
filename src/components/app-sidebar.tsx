@@ -28,7 +28,7 @@ import type { Role } from "@/lib/types"
 
 // ── Personal items — visible to every role ────────────────────────────────────
 
-const MY_PROFILE_ITEM: NavItem = { title: "My Profile", url: "/dashboard/my-profile", icon: <ClipboardCheck className="size-4" /> }
+const MY_PROFILE_ITEM: NavItem = { title: "My Profile", url: "/dashboard/my-profile", icon: <ClipboardCheck className="size-4" />, exactMatch: true }
 const PRINT_ITEM:      NavItem = { title: "Print",       url: "/dashboard/my-profile/report", icon: <FileText className="size-4" /> }
 
 const PERSONAL_ITEMS: NavItem[] = [MY_PROFILE_ITEM, PRINT_ITEM]
