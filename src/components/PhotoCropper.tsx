@@ -115,8 +115,15 @@ export function PhotoCropper({ src, title, onConfirm, onCancel }: PhotoCropperPr
           autoCropArea={0.9}
           responsive
           restore={false}
+          // Touch / mobile-friendly options
+          zoomable={true}
+          zoomOnTouch={true}
+          zoomOnWheel={true}
+          movable={true}
+          cropBoxMovable={true}
+          cropBoxResizable={true}
           onInitialized={() => setReady(true)}
-          style={{ width: "100%", height: "100%" }}
+          style={{ width: "100%", height: "100%", touchAction: "none" }}
         />
       </div>
 
