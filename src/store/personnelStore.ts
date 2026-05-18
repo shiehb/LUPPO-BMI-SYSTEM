@@ -6,10 +6,12 @@ type StatusFilter = PersonnelStatus | "all";
 interface PersonnelStoreState {
   statusFilter: StatusFilter;
   searchQuery: string;
+  unitFilter: string;
   records: PersonnelRecord[];
 
   setStatusFilter: (filter: StatusFilter) => void;
   setSearchQuery: (query: string) => void;
+  setUnitFilter: (filter: string) => void;
   initRecords: (records: PersonnelRecord[]) => void;
   optimisticallyApprove: (assessmentId: string) => void;
   optimisticallyReturn: (assessmentId: string, reason: string) => void;
@@ -18,10 +20,12 @@ interface PersonnelStoreState {
 export const usePersonnelStore = create<PersonnelStoreState>((set) => ({
   statusFilter: "all",
   searchQuery: "",
+  unitFilter: "all",
   records: [],
 
   setStatusFilter: (filter) => set({ statusFilter: filter }),
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setUnitFilter: (filter) => set({ unitFilter: filter }),
   initRecords: (records) => set({ records }),
 
   optimisticallyApprove: (assessmentId) =>

@@ -32,7 +32,11 @@ function getCurrentMonthString(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export function AssessmentWindowControl() {
+interface AssessmentWindowControlProps {
+  canEditWindow?: boolean;
+}
+
+export function AssessmentWindowControl({ canEditWindow = false }: AssessmentWindowControlProps) {
   const [monthStr, setMonthStr] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -181,71 +185,73 @@ export function AssessmentWindowControl() {
         </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            disabled={isLoading}
-          >
-            {hasWindow ? "Edit Window" : "Adjust Dates"}
-          </Button>
-        </DialogTrigger>
-
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Update Assessment Window</DialogTitle>
-            <DialogDescription>
-              Adjust the current month submission dates and save the new window.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="date-range">Date Range</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between"
-                    aria-label="Select date range"
-                  >
-                    <span>
-                      {date?.from && date?.to
-                        ? `${formatDisplayDate(date.from)} - ${formatDisplayDate(date.to)}`
-                        : "Select range"}
-                    </span>
-                    <CalendarIcon className="h-4 w-4 opacity-70" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="range"
-                    selected={date}
-                    onSelect={(range) => setDate(range)}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              The dates below will apply to {currentMonthLabel}. If the current date falls within this range, the window will show as open.
-            </div>
-          </div>
-
-          <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      {canEditWindow && (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
             <Button
-              variant="outline"
-              onClick={() => setDialogOpen(false)}
-              disabled={isSaving}
+              disabled={isLoading}
             >
-              Cancel
+              {hasWindow ? "Edit Window" : "Adjust Dates"}
             </Button>
-            <Button onClick={handleSave} disabled={isSaving} className="gap-2">
-              <Save className="size-4" />
-              {isSaving ? "Saving..." : "Save Window"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogTrigger>
+
+          <DialogContent className="sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Update Assessment Window</DialogTitle>
+              <DialogDescription>
+                Adjust the current month submission dates and save the new window.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="date-range">Date Range</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between"
+                      aria-label="Select date range"
+                    >
+                      <span>
+                        {date?.from && date?.to
+                          ? `${formatDisplayDate(date.from)} - ${formatDisplayDate(date.to)}`
+                          : "Select range"}
+                      </span>
+                      <CalendarIcon className="h-4 w-4 opacity-70" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={date}
+                      onSelect={(range) => setDate(range)}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                The dates below will apply to {currentMonthLabel}. If the current date falls within this range, the window will show as open.
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                <Save className="size-4" />
+                {isSaving ? "Saving..." : "Save Window"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

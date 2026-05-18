@@ -277,6 +277,16 @@ function ActionCell({
 
 function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
   return [
+    // col 1 — Badge
+    {
+      id: "badge",
+      accessorFn: (r) => r.profile.badge_number,
+      header: "Badge #",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.profile.badge_number}</span>
+      ),
+    },
+    // col 2 — Officer
     {
       id: "officer",
       accessorFn: (r) => r.profile.full_name,
@@ -293,14 +303,7 @@ function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
         );
       },
     },
-    {
-      id: "badge",
-      accessorFn: (r) => r.profile.badge_number,
-      header: "Badge #",
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.profile.badge_number}</span>
-      ),
-    },
+    // col 3 — Unit / Station
     {
       id: "unit",
       accessorFn: (r) => r.profile.unit_station ?? "",
@@ -311,12 +314,7 @@ function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
         </span>
       ),
     },
-    {
-      id: "status",
-      accessorFn: (r) => r.status,
-      header: "Status",
-      cell: ({ row }) => <StatusBadge status={row.original.status} />,
-    },
+    // col 4 — BMI
     {
       id: "bmi",
       accessorFn: (r) => r.assessment?.bmi_score ?? -1,
@@ -330,6 +328,7 @@ function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
           <span className="text-muted-foreground text-sm">—</span>
         ),
     },
+    // col 5 — PNP Classification
     {
       id: "pnp_status",
       accessorFn: (r) => r.assessment?.bmi_pnp_status ?? "",
@@ -341,6 +340,7 @@ function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
           <span className="text-muted-foreground text-sm">—</span>
         ),
     },
+    // col 6 — Date Taken
     {
       id: "date_taken",
       accessorFn: (r) => r.assessment?.date_taken ?? "",
@@ -358,6 +358,14 @@ function buildColumns(month: string): ColumnDef<PersonnelRecord>[] {
           <span className="text-muted-foreground text-sm">—</span>
         ),
     },
+    // col 7 — Status
+    {
+      id: "status",
+      accessorFn: (r) => r.status,
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    // col 8 — Actions
     {
       id: "actions",
       header: "",
@@ -389,7 +397,7 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
   const pathname     = usePathname();
   const searchParams = useSearchParams();
 
-  const { statusFilter, searchQuery, records, setStatusFilter, setSearchQuery, initRecords } =
+  const { statusFilter, searchQuery, unitFilter, records, setStatusFilter, setSearchQuery, setUnitFilter, initRecords } =
     usePersonnelStore();
 
   const [sorting, setSorting]             = useState<SortingState>([]);
@@ -414,9 +422,16 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
     [records]
   );
 
+  const unitOptions = useMemo(() => {
+    const units = Array.from(
+      new Set(records.map((r) => r.profile.unit_station).filter(Boolean))
+    ).sort() as string[];
+    return units;
+  }, [records]);
+
   const filtered = useMemo(
-    () => filterPersonnelRecords(records, { statusFilter, searchQuery }),
-    [records, statusFilter, searchQuery]
+    () => filterPersonnelRecords(records, { statusFilter, searchQuery, unitFilter }),
+    [records, statusFilter, searchQuery, unitFilter]
   );
 
   const columns = useMemo(
@@ -440,9 +455,8 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
 
   return (
     <div className="space-y-4">
-        {/* Filters row */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Status tabs */}
+        {/* Filters — row 1: status tabs + month picker */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-1.5">
             {STATUS_TABS.map(({ value, label }) => {
               const count =
@@ -476,20 +490,39 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
             })}
           </div>
 
-          {/* Month picker + search + batch notify */}
-          <div className="flex flex-wrap items-center gap-2">
-            <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search name or badge…"
-                className="pl-9 text-sm h-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <BatchNotifyButton userIds={notStartedIds} month={selectedMonth} />
+          <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
+        </div>
+
+        {/* Filters — row 2: search + unit filter + batch notify */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search name or badge…"
+              className="pl-9 text-sm h-9 w-full"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); table.setPageIndex(0); }}
+            />
           </div>
+
+          <Select
+            value={unitFilter}
+            onValueChange={(v) => { setUnitFilter(v); table.setPageIndex(0); }}
+          >
+            <SelectTrigger className="h-9 w-full sm:w-52 text-sm">
+              <SelectValue placeholder="All Units / Stations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Units / Stations</SelectItem>
+              {unitOptions.map((unit) => (
+                <SelectItem key={unit} value={unit}>
+                  {unit}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <BatchNotifyButton userIds={notStartedIds} month={selectedMonth} />
         </div>
 
         {/* Table */}

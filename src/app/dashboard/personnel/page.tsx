@@ -1,7 +1,7 @@
 import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
 import { getPersonnelRecords } from "@/app/system_admin/personnel/actions";
 import { BmiResultsTable } from "@/app/system_admin/assessments/BmiResultsTable";
-import { QuickStats } from "@/app/system_admin/personnel/QuickStats";
 import { AssessmentWindowControl } from "@/app/system_admin/assessments/AssessmentWindowControl";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,6 +17,14 @@ interface PageProps {
 export default async function PersonnelPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const month  = params.month ?? currentMonth();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
+    : { data: null };
+  const canEditWindow = profile?.role === "system_admin";
+
   const records = await getPersonnelRecords(month);
 
   return (
@@ -29,21 +37,8 @@ export default async function PersonnelPage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        <AssessmentWindowControl />
+        <AssessmentWindowControl canEditWindow={canEditWindow} />
       </div>
-
-      {/* Metric cards — reads from Zustand store hydrated by BmiResultsTable below */}
-      <Suspense
-        fallback={
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-xl" />
-            ))}
-          </div>
-        }
-      >
-        <QuickStats />
-      </Suspense>
 
       <Suspense fallback={<Skeleton className="h-96 rounded-xl" />}>
         <BmiResultsTable initialRecords={records} initialMonth={month} />

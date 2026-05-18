@@ -5,7 +5,6 @@ import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProviderWrapper } from "@/components/sidebar-provider-wrapper";
-import { Toaster } from "@/components/ui/sonner";
 import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb";
 import type { Role } from "@/lib/types";
 
@@ -47,7 +46,6 @@ export default async function DashboardLayout({
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
       </SidebarInset>
-      <Toaster richColors position="bottom-right" />
     </SidebarProviderWrapper>
   );
 }

@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import {
-  ShieldCheck,
   Users,
   ClipboardList,
   ClipboardCheck,
@@ -73,13 +73,21 @@ export function AppSidebar({ role, user, ...props }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" className="pointer-events-none select-none">
-              <div className="flex size-8 items-center justify-center rounded-md bg-white/15 shrink-0">
-                <ShieldCheck className="size-4" />
+            <SidebarMenuButton size="lg" className="pointer-events-none select-none group-data-[collapsible=icon]:justify-center">
+              {/* PNP logo — left, hidden when collapsed to icon */}
+              <div className="flex size-8 sm:size-9 items-center justify-center rounded-md shrink-0 overflow-hidden group-data-[collapsible=icon]:hidden">
+                <Image src="/pnp-logo.webp" alt="PNP Logo" width={36} height={36} className="w-full h-full object-contain" />
               </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">LUPPO BMI</span>
+
+              {/* Title — center, hidden when collapsed to icon */}
+              <div className="grid flex-1 text-center text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">BMI SYSTEM</span>
                 <span className="truncate text-xs opacity-60">{ROLE_SUBTITLE[role]}</span>
+              </div>
+
+              {/* PRO1 logo — right when expanded, sole icon when collapsed */}
+              <div className="flex size-7 sm:size-8 items-center justify-center rounded-md shrink-0 overflow-hidden">
+                <Image src="/pro1-logo.webp" alt="PRO1 Logo" width={36} height={36} className="w-full h-full object-contain" />
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

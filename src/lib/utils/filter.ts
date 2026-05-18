@@ -3,16 +3,21 @@ import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 export interface PersonnelFilterOptions {
   statusFilter: PersonnelStatus | "all";
   searchQuery: string;
+  unitFilter?: string;
 }
 
 export function filterPersonnelRecords(
   records: PersonnelRecord[],
-  { statusFilter, searchQuery }: PersonnelFilterOptions
+  { statusFilter, searchQuery, unitFilter }: PersonnelFilterOptions
 ): PersonnelRecord[] {
   let result = records;
 
   if (statusFilter !== "all") {
     result = result.filter((r) => r.status === statusFilter);
+  }
+
+  if (unitFilter && unitFilter !== "all") {
+    result = result.filter((r) => r.profile.unit_station === unitFilter);
   }
 
   const q = searchQuery.trim().toLowerCase();
