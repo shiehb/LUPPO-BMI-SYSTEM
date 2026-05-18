@@ -49,7 +49,9 @@ export function PhotoCropper({ src, title, onConfirm, onCancel }: PhotoCropperPr
     const cropper = cropperRef.current?.cropper;
     if (!cropper) return;
 
-    const canvas = cropper.getCroppedCanvas({ width: CROP_W, height: CROP_H });
+    // Output at 4× the print dimensions (504×900 px) for acceptable screen quality.
+    // CROP_W/CROP_H define the aspect ratio for the print form — not the storage resolution.
+    const canvas = cropper.getCroppedCanvas({ width: CROP_W * 4, height: CROP_H * 4 });
     if (!canvas) return;
 
     const preview = canvas.toDataURL("image/jpeg", 0.92);
