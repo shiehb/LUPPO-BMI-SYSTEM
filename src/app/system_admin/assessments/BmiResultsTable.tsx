@@ -256,20 +256,15 @@ function ActionCell({
 
   // Already reviewed — navigate to full-page view (read-only)
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        size="sm"
-        variant="outline"
-        className="gap-1.5 text-xs"
-        onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
-      >
-        <Eye className="size-3" />
-        Open
-      </Button>
-      {row.assessment!.edit_requested && (
-        <AllowEditButton assessmentId={row.assessment!.id} />
-      )}
-    </div>
+    <Button
+      size="sm"
+      variant="outline"
+      className="gap-1.5 text-xs"
+      onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
+    >
+      <Eye className="size-3" />
+      Open
+    </Button>
   );
 }
 
