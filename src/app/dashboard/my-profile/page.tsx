@@ -231,7 +231,7 @@ export default async function MyProfilePage() {
       {latest && (
         <Card>
           {/* ROW 1: Header — name/rank (left) · unit (right) */}
-          <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b px-4 py-3 sm:px-6 sm:py-4">
             <div>
               <p className="font-bold text-base uppercase tracking-wide">
                 {profile?.rank ? `${profile.rank.toUpperCase()} ` : ""}
@@ -292,7 +292,7 @@ export default async function MyProfilePage() {
               </div>
 
               {/* BMI score display */}
-              <div className="flex-[3] flex flex-col items-center justify-center rounded-xl bg-muted/50 px-4 py-6 text-center">
+              <div className="flex-[3] flex flex-col items-center justify-center rounded-xl bg-muted/50 px-4 py-4 sm:py-6 text-center">
                 <span className="text-5xl font-bold tabular-nums tracking-tight">
                   {Number(latest.bmi_score).toFixed(2)}
                 </span>
@@ -435,13 +435,13 @@ export default async function MyProfilePage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Weight (kg)</TableHead>
-                    <TableHead className="text-right">Height (cm)</TableHead>
+                    <TableHead className="hidden sm:table-cell text-right">Weight (kg)</TableHead>
+                    <TableHead className="hidden sm:table-cell text-right">Height (cm)</TableHead>
                     <TableHead className="text-right">BMI</TableHead>
                     <TableHead>Classification</TableHead>
                     <TableHead>Status</TableHead>
@@ -454,8 +454,8 @@ export default async function MyProfilePage() {
                       <TableCell className="font-medium whitespace-nowrap">
                         {fmtDate(a.date_taken)}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{a.weight}</TableCell>
-                      <TableCell className="text-right tabular-nums">
+                      <TableCell className="hidden sm:table-cell text-right tabular-nums">{a.weight}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-right tabular-nums">
                         {(Number(a.height) * 100).toFixed(0)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">

@@ -489,7 +489,7 @@ export function AssessmentInput({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               {(["right", "front", "left"] as PhotoView[]).map((view) => (
                 <PhotoSlot
                   key={view}
