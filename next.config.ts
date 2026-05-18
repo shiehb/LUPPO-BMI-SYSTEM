@@ -23,5 +23,9 @@ export default withSentryConfig(nextConfig, {
   silent:  !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: { disable: false },
-  disableLogger: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
 });
