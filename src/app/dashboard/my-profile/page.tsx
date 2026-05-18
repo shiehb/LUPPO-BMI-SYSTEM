@@ -274,16 +274,16 @@ export default async function MyProfilePage() {
                   <div key={label} className="flex flex-col gap-1">
                     <p className="text-center text-xs text-muted-foreground">{label}</p>
                     {url ? (
-                      <div className="aspect-square overflow-hidden rounded-lg border bg-muted">
+                      <div className="overflow-hidden rounded-lg border bg-muted">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={url}
                           alt={`${label} view`}
-                          className="h-full w-full object-cover"
+                          className="w-full h-auto block"
                         />
                       </div>
                     ) : (
-                      <div className="flex aspect-square items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+                      <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
                         No photo
                       </div>
                     )}

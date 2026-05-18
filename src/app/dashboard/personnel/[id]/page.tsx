@@ -151,16 +151,16 @@ export default async function PersonnelAssessmentPage({
                     {label} View
                   </p>
                   {url ? (
-                    <div className="aspect-square overflow-hidden rounded-lg border bg-muted">
+                    <div className="overflow-hidden rounded-lg border bg-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={url}
                         alt={`${label} view`}
-                        className="h-full w-full object-cover"
+                        className="w-full h-auto block"
                       />
                     </div>
                   ) : (
-                    <div className="flex aspect-square items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
+                    <div className="flex aspect-[3/4] items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
                       Not uploaded
                     </div>
                   )}
@@ -239,7 +239,7 @@ export default async function PersonnelAssessmentPage({
                     {assessment.weight_to_lose} kg
                   </span>
                 ) : (
-                  <span className="font-semibold text-green-600">Within range</span>
+                  <span className="font-semibold text-green-600">Maintain</span>
                 )
               }
             />

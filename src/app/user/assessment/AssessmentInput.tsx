@@ -467,7 +467,7 @@ export function AssessmentInput({
                       )}>
                         {bmiPreview.weightToLose > 0
                           ? `${bmiPreview.weightToLose} kg`
-                          : "Within range"}
+                          : "Maintain"}
                       </span>
                     </div>
                   </div>
@@ -600,9 +600,9 @@ function PhotoSlot({
     <div className="flex flex-col gap-2">
       <p className="text-xs font-medium text-center text-muted-foreground">{label} View</p>
       {displayUrl ? (
-        <div className="relative aspect-square overflow-hidden rounded-lg border">
+        <div className="relative overflow-hidden rounded-lg border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={displayUrl} alt={`${view} view`} className="h-full w-full object-cover" />
+          <img src={displayUrl} alt={`${view} view`} className="w-full h-auto block" />
           {!disabled && (photo || existingUrl) && (
             <button
               type="button"

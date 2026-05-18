@@ -192,3 +192,38 @@ export async function notifyPersonnel(
     return sendEmail({ to: profile.email, subject, html });
   });
 }
+
+export async function notifyBatchPersonnel(
+  userIds: string[],
+  month: string
+): Promise<{ notified: number; failed: number; error?: string }> {
+  return withActionGuard(async () => {
+    await requireAdmin();
+
+    if (!userIds.length) return { notified: 0, failed: 0 };
+
+    const admin = getAdminClient();
+    const { data: profiles } = await admin
+      .from("profiles")
+      .select("email, full_name, badge_number, rank")
+      .in("id", userIds);
+
+    const results = await Promise.allSettled(
+      (profiles ?? []).map((profile) => {
+        if (!profile?.email) return Promise.reject(new Error("no email"));
+        const { subject, html } = bmiReminderEmail({
+          officerName: profile.full_name,
+          badgeNumber: profile.badge_number,
+          rank:        profile.rank ?? null,
+          month,
+          appUrl:      appUrl(),
+        });
+        return sendEmail({ to: profile.email, subject, html });
+      })
+    );
+
+    const notified = results.filter((r) => r.status === "fulfilled").length;
+    const failed   = results.filter((r) => r.status === "rejected").length;
+    return { notified, failed };
+  }) as Promise<{ notified: number; failed: number; error?: string }>;
+}

@@ -93,7 +93,7 @@ function buildPrintData(
     weightAction:
       assessment.weight_to_lose > 0
         ? `${assessment.weight_to_lose} kg to lose`
-        : "0 kg (Within Normal Range)",
+        : "Maintain",
     pnpClassification:   (assessment.bmi_pnp_status ?? assessment.bmi_who_status ?? "").toUpperCase(),
     bmiClassification:   (assessment.bmi_who_status ?? "").toUpperCase(),
     interventionPackage: WHO_TO_PKG[pnpStatus] ?? "—",

@@ -13,7 +13,6 @@ import {
 } from "@tanstack/react-table";
 import { toast } from "sonner";
 import {
-  Bell,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -24,6 +23,7 @@ import {
   Loader2,
   PencilLine,
   Search,
+  Send,
 } from "lucide-react";
 
 import {
@@ -58,8 +58,9 @@ import {
 
 import { usePersonnelStore } from "@/store/personnelStore";
 import { filterPersonnelRecords } from "@/lib/utils/filter";
-import { notifyPersonnel } from "../personnel/actions";
+import { notifyBatchPersonnel } from "../personnel/actions";
 import { allowEditRequest } from "../assessments/actions";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import type { PersonnelRecord, PersonnelStatus } from "@/lib/types";
 
 // ─── Status badge ──────────────────────────────────────────────────────────────
@@ -167,6 +168,57 @@ function AllowEditButton({ assessmentId }: { assessmentId: string }) {
   );
 }
 
+// ─── Batch notify button ───────────────────────────────────────────────────────
+
+function BatchNotifyButton({ userIds, month }: { userIds: string[]; month: string }) {
+  const [open, setOpen]         = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  function handleConfirm() {
+    startTransition(async () => {
+      const result = await notifyBatchPersonnel(userIds, month);
+      if ("error" in result && result.error) {
+        toast.error(`Batch notify failed: ${result.error}`);
+      } else {
+        const { notified, failed } = result as { notified: number; failed: number };
+        if (failed > 0) toast.warning(`Sent ${notified} reminder(s). ${failed} failed.`);
+        else toast.success(`Sent ${notified} reminder(s) to all not-started personnel.`);
+      }
+      setOpen(false);
+    });
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-1.5 text-xs border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+        disabled={userIds.length === 0 || isPending}
+        onClick={() => setOpen(true)}
+      >
+        {isPending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
+        Notify All
+        {userIds.length > 0 && (
+          <span className="rounded-full bg-blue-200 px-1.5 py-0.5 text-[10px] font-bold text-blue-800">
+            {userIds.length}
+          </span>
+        )}
+      </Button>
+
+      <ConfirmationDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Send Batch Reminder?"
+        description={`This will send a BMI submission reminder email to all ${userIds.length} not-started personnel for the selected month.`}
+        confirmLabel="Send Reminders"
+        isPending={isPending}
+        onConfirm={handleConfirm}
+      />
+    </>
+  );
+}
+
 // ─── Action cell ───────────────────────────────────────────────────────────────
 
 function ActionCell({
@@ -177,31 +229,13 @@ function ActionCell({
   month: string;
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
-  // No assessment yet — offer an email reminder
+  // No assessment yet — nothing to show (batch notify handles this)
   if (!row.assessment || row.status === "not_started") {
-    return (
-      <Button
-        size="sm"
-        variant="outline"
-        className="gap-1.5 text-xs"
-        disabled={isPending}
-        onClick={() => {
-          startTransition(async () => {
-            const { error } = await notifyPersonnel(row.profile.id, month);
-            if (error) toast.error(`Notify failed: ${error}`);
-            else toast.success(`Reminder sent to ${row.profile.full_name}.`);
-          });
-        }}
-      >
-        {isPending ? <Loader2 className="size-3 animate-spin" /> : <Bell className="size-3" />}
-        Notify
-      </Button>
-    );
+    return null;
   }
 
-  // Pending — navigate to full-page review + always expose Allow Edit
+  // Pending — navigate to full-page review
   if (row.status === "pending_approval") {
     return (
       <div className="flex items-center gap-2">
@@ -213,22 +247,29 @@ function ActionCell({
           <ClipboardCheck className="size-3" />
           Review
         </Button>
-        <AllowEditButton assessmentId={row.assessment!.id} />
+        {row.assessment!.edit_requested && (
+          <AllowEditButton assessmentId={row.assessment!.id} />
+        )}
       </div>
     );
   }
 
   // Already reviewed — navigate to full-page view (read-only)
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="gap-1.5 text-xs"
-      onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
-    >
-      <Eye className="size-3" />
-      Open
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-1.5 text-xs"
+        onClick={() => router.push(`/dashboard/personnel/${row.assessment!.id}`)}
+      >
+        <Eye className="size-3" />
+        Open
+      </Button>
+      {row.assessment!.edit_requested && (
+        <AllowEditButton assessmentId={row.assessment!.id} />
+      )}
+    </div>
   );
 }
 
@@ -368,6 +409,11 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
     [pathname, router, searchParams]
   );
 
+  const notStartedIds = useMemo(
+    () => records.filter((r) => r.status === "not_started").map((r) => r.profile.id),
+    [records]
+  );
+
   const filtered = useMemo(
     () => filterPersonnelRecords(records, { statusFilter, searchQuery }),
     [records, statusFilter, searchQuery]
@@ -430,7 +476,7 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
             })}
           </div>
 
-          {/* Month picker + search */}
+          {/* Month picker + search + batch notify */}
           <div className="flex flex-wrap items-center gap-2">
             <MonthPicker value={selectedMonth} onChange={handleMonthChange} />
             <div className="relative w-full sm:w-64">
@@ -442,6 +488,7 @@ export function BmiResultsTable({ initialRecords, initialMonth }: BmiResultsTabl
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <BatchNotifyButton userIds={notStartedIds} month={selectedMonth} />
           </div>
         </div>
 

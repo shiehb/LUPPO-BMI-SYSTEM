@@ -224,7 +224,7 @@ export function AssessmentDashboard({
               assessment.weight_to_lose > 0 ? (
                 <span className="font-semibold text-orange-600">{assessment.weight_to_lose} kg</span>
               ) : (
-                <span className="font-semibold text-green-600">Within range</span>
+                <span className="font-semibold text-green-600">Maintain</span>
               )
             }
           />
@@ -390,12 +390,12 @@ export function AssessmentDashboard({
                       {view} View
                     </p>
                     {url ? (
-                      <div className="aspect-square overflow-hidden rounded-lg border">
+                      <div className="overflow-hidden rounded-lg border">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${view} view`} className="h-full w-full object-cover" />
+                        <img src={url} alt={`${view} view`} className="w-full h-auto block" />
                       </div>
                     ) : (
-                      <div className="flex aspect-square items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
+                      <div className="flex aspect-[3/4] items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
                         Not uploaded
                       </div>
                     )}

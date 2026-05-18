@@ -60,7 +60,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
     try {
       const result = await updateAssessmentStatus(assessmentId, "returned", adminRemarks.trim());
       if (result.error) { toast.error(result.error); return; }
-      toast.success("Assessment returned for correction.");
+      toast.success("Assessment returned.");
       setReturnOpen(false);
       router.push("/dashboard/personnel");
     } catch (e) {
@@ -112,7 +112,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
             onClick={() => setShowReturnForm(true)}
           >
             <RotateCcw className="mr-2 size-4" />
-            Return for Correction
+            Return
           </Button>
         ) : (
           <>
@@ -133,7 +133,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
                 setReturnOpen(true);
               }}
             >
-              Return for Correction
+              Return
             </Button>
           </>
         )}
@@ -162,7 +162,7 @@ export function ReviewActions({ assessmentId, editRequested }: ReviewActionsProp
       <ConfirmationDialog
         open={returnOpen}
         onOpenChange={setReturnOpen}
-        title="Return for Correction?"
+        title="Return?"
         description="The officer will be notified and asked to revise their submission based on your reason."
         confirmLabel="Confirm Return"
         variant="destructive"
