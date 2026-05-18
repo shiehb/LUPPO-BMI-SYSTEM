@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { getWHOBadgeClass, getHealthRecommendation } from "@/lib/utils/bmi";
+import { PhotoGrid } from "@/components/PhotoGrid";
 import { getFrameBadgeClass, getFrameSizeDescription } from "@/lib/utils/wrist";
 import { getWaistStatusBadgeClass, getWaistInterpretation } from "@/lib/utils/waist";
 import { calculateWHR, getWHRRisk, getWHRInterpretation, getWHRRiskBadgeClass } from "@/lib/utils/hip";
@@ -381,28 +382,15 @@ export function AssessmentDashboard({
             <SectionTitle icon={User} title="3-View Photos" />
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(["right", "front", "left"] as const).map((view) => {
-                const url = assessment[`photo_${view}_url` as keyof Assessment] as string | null;
-                return (
-                  <div key={view} className="flex flex-col gap-1.5">
-                    <p className="text-center text-xs font-medium capitalize text-muted-foreground">
-                      {view} View
-                    </p>
-                    {url ? (
-                      <div className="overflow-hidden rounded-lg border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt={`${view} view`} className="w-full h-auto block" />
-                      </div>
-                    ) : (
-                      <div className="flex aspect-[3/4] items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
-                        Not uploaded
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <PhotoGrid
+              photos={[
+                { label: "Right", url: assessment.photo_right_url },
+                { label: "Front", url: assessment.photo_front_url },
+                { label: "Left",  url: assessment.photo_left_url  },
+              ]}
+              gridClassName="grid gap-3 sm:grid-cols-3"
+              labelSuffix="View"
+            />
           </CardContent>
         </Card>
       )}

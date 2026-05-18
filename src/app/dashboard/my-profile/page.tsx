@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, Clock, History, Plus, Printer, TrendingUp } from "lucide-react";
+import { AlertTriangle, Clock, History, Plus, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import type { Assessment, AssessmentStatus, Profile } from "@/lib/types";
@@ -23,6 +23,8 @@ import type { WHOCategory } from "@/lib/utils/bmi";
 import type { PNPClassification } from "@/lib/utils/pnp";
 import { RequestToEditButton } from "@/app/user/assessment/RequestToEditButton";
 import { NewAssessmentButton } from "@/app/user/assessment/NewAssessmentButton";
+import { PrintButton } from "@/app/dashboard/my-profile/PrintButton";
+import { PhotoGrid } from "@/components/PhotoGrid";
 import { getAssessmentWindow } from "@/app/system_admin/assessments/assessment-window-actions";
 
 
@@ -249,12 +251,11 @@ export default async function MyProfilePage() {
                 {statusLabel(latest.status)}
               </Badge>
               {latest.status === "approved" && (
-                <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 px-2.5 text-xs">
-                  <Link href={`/print/bmi-form?id=${latest.id}`}>
-                    <Printer className="size-3.5" />
-                    Print
-                  </Link>
-                </Button>
+                <PrintButton
+                  assessmentId={latest.id}
+                  className="h-7 gap-1.5 px-2.5 text-xs"
+                  iconClassName="size-3.5"
+                />
               )}
             </div>
           </div>
@@ -263,32 +264,15 @@ export default async function MyProfilePage() {
             {/* ROW 2: Photos (70%) + BMI Score (30%) */}
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Photo gallery */}
-              <div className="flex-[7] grid grid-cols-3 gap-2">
-                {(
-                  [
+              <div className="flex-[7]">
+                <PhotoGrid
+                  photos={[
                     { label: "Right", url: latest.photo_right_url },
                     { label: "Front", url: latest.photo_front_url },
                     { label: "Left",  url: latest.photo_left_url  },
-                  ] as { label: string; url: string | null }[]
-                ).map(({ label, url }) => (
-                  <div key={label} className="flex flex-col gap-1">
-                    <p className="text-center text-xs text-muted-foreground">{label}</p>
-                    {url ? (
-                      <div className="overflow-hidden rounded-lg border bg-muted">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt={`${label} view`}
-                          className="w-full h-auto block"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
-                        No photo
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ]}
+                  gridClassName="grid grid-cols-3 gap-2"
+                />
               </div>
 
               {/* BMI score display */}
@@ -492,12 +476,11 @@ export default async function MyProfilePage() {
                             </>
                           )}
                           {a.status === "approved" && (
-                            <Button asChild size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs">
-                              <Link href={`/print/bmi-form?id=${a.id}`}>
-                                <Printer className="size-3" />
-                                Print
-                              </Link>
-                            </Button>
+                            <PrintButton
+                              assessmentId={a.id}
+                              className="h-7 gap-1 px-2 text-xs"
+                              iconClassName="size-3"
+                            />
                           )}
                         </div>
                       </TableCell>

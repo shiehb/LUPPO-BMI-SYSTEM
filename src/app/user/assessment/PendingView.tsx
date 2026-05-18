@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PhotoGrid } from "@/components/PhotoGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
@@ -161,29 +162,7 @@ export function PendingView({
             <CardTitle className="text-base">3-View Photos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {photoViews.map(({ label, url }) => (
-                <div key={label} className="flex flex-col gap-1.5">
-                  <p className="text-center text-xs font-medium text-muted-foreground">
-                    {label} View
-                  </p>
-                  {url ? (
-                    <div className="overflow-hidden rounded-lg border bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`${label} view`}
-                        className="w-full h-auto block"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[3/4] items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
-                      Not uploaded
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <PhotoGrid photos={photoViews} labelSuffix="View" />
           </CardContent>
         </Card>
       )}

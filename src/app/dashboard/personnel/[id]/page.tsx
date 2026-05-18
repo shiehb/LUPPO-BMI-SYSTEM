@@ -10,6 +10,7 @@ import { getBMIStatusColor, getPNPStatusColor } from "@/lib/bmi";
 import type { BMIStatus, PNPStatus } from "@/lib/bmi";
 import type { Assessment, OfficerSummary } from "@/lib/types";
 import { ReviewActions } from "@/app/system_admin/assessments/[id]/ReviewActions";
+import { PhotoGrid } from "@/components/PhotoGrid";
 
 function getAdminClient() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -144,29 +145,7 @@ export default async function PersonnelAssessmentPage({
             <CardTitle className="text-base">3-View Photos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {photoViews.map(({ label, url }) => (
-                <div key={label} className="flex flex-col gap-1.5">
-                  <p className="text-center text-xs font-medium text-muted-foreground">
-                    {label} View
-                  </p>
-                  {url ? (
-                    <div className="overflow-hidden rounded-lg border bg-muted">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`${label} view`}
-                        className="w-full h-auto block"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[3/4] items-center justify-center rounded-lg border bg-muted/40 text-xs text-muted-foreground">
-                      Not uploaded
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <PhotoGrid photos={photoViews} labelSuffix="View" />
           </CardContent>
         </Card>
 
